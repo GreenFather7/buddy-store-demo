@@ -517,10 +517,9 @@ select.field__input {
   cursor: not-allowed;
 }
 
-/* Подарки, регионы и номиналы: один ряд, листается влево-вправо, как строка разделов. */
+/* Подарки и регионы: один ряд, листается влево-вправо, как строка разделов. */
 .choices--media,
-.choices--region,
-.choices--price {
+.choices--region {
   flex-wrap: nowrap;
   margin-inline: calc(var(--space-gutter) * -1);
   padding: 2px var(--space-gutter);
@@ -539,19 +538,16 @@ select.field__input {
 }
 
 .choices--media::-webkit-scrollbar,
-.choices--region::-webkit-scrollbar,
-.choices--price::-webkit-scrollbar {
+.choices--region::-webkit-scrollbar {
   display: none;
 }
 
-/* Номинал и его цена — в одну строку: «10 $  990 ₽» */
-.choice.choice--price {
-  flex: none;
-  display: flex;
-  align-items: baseline;
-  gap: 0.4375rem;
+/* Номиналы — как шаблоны количества у звёзд: равные капсулы в один ряд, только номинал */
+.choice--nominal {
+  flex: 1 1 0;
+  padding-inline: 0.25rem;
+  font-size: 1rem;
   white-space: nowrap;
-  scroll-snap-align: start;
 }
 
 .choice--media {

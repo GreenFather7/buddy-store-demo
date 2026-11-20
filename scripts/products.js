@@ -302,7 +302,7 @@ const cards = {
       key: 'voucher',
       type: 'choice',
       label: 'Номинал',
-      variant: 'price',
+      variant: 'nominal',
       dependsOn: ['service', 'region'],
       options: async ({ service, region }) => {
         const { vouchers } = await request('cards', '/api/vouchers/list', {
@@ -310,8 +310,8 @@ const cards = {
         })
         return vouchers.map((voucher) => ({
           value: voucher.id,
+          // цена номинала — на кнопке «Оплатить» после выбора
           label: voucher.short_name || voucher.name,
-          sub: formatRub(voucher.user_price),
           data: voucher,
         }))
       },
