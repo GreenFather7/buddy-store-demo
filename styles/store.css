@@ -1,0 +1,821 @@
+/* Один экран: выбрать товар, заполнить, оплатить. */
+.store {
+  display: grid;
+  justify-items: center;
+  gap: clamp(1rem, 0.6rem + 2vw, 1.75rem);
+  min-height: calc(100dvh - var(--header-height) - 5rem);
+  padding: clamp(0.5rem, 3vh, 2.5rem) var(--space-gutter) 2rem;
+  align-content: start;
+}
+
+/* ── Шапка: аватар и разлетающиеся значки, как в мини-приложении звёзд ── */
+.hero {
+  --hero-color: var(--color-gold);
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  max-width: 30rem;
+  height: clamp(8rem, 6.5rem + 6vw, 10rem);
+  /* заголовок и карточка покупки подтянуты ближе: значки залетают и за них */
+  margin-bottom: -0.5rem;
+}
+
+/* Квадрат анимации с центром в аватаре — как в мини-приложении, где он во всю ширину экрана.
+   Лежит под заголовком и карточкой покупки: значки вылетают из-за них. */
+.hero__sparks {
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  width: min(100vw, 32rem);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.hero__avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  width: clamp(5.5rem, 4.6rem + 4vw, 6.5rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #0c0c0e;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.1),
+    0 0 44px -4px color-mix(in srgb, var(--hero-color) 60%, transparent);
+  transition: box-shadow var(--duration-slow);
+}
+
+.hero__photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* у картинки широкие тёмные поля — приближаем персонажа */
+  transform: scale(1.3) translateY(4%);
+}
+
+/* Аватар получателя из Telegram уже квадратный и по центру — приближение не нужно */
+.hero__avatar--user .hero__photo {
+  transform: none;
+}
+
+.store__title {
+  font-size: clamp(1.5rem, 1.1rem + 2vw, 2.25rem);
+  text-align: center;
+}
+
+/* Фирменный перелив заголовка: золото → оранжевый → розовый → фиолетовый */
+.shine {
+  background: linear-gradient(100deg, #ffcf70 0%, #ff9a00 30%, #ff477e 65%, #7b61ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.checkout {
+  display: grid;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 30rem;
+  padding: clamp(1rem, 0.6rem + 2vw, 1.5rem);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow:
+    inset 0 0 0 1px var(--color-line),
+    0 40px 80px -40px rgb(0 0 0 / 0.8);
+}
+
+/* ── Выбор товара ──────────────────────────────────── */
+.products {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+/* Плитка раздела: у каждого товара свой цвет — он подсвечивает плитку сверху,
+   даёт свечение иконке и рамку выбранному разделу. */
+.product {
+  --product-color: #b46cff;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 0.25rem 0.75rem;
+  border: 0;
+  border-radius: 1rem;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--product-color) 9%, var(--color-surface-2)),
+    var(--color-surface-2) 75%
+  );
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
+  color: var(--color-text-soft);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color var(--duration-fast),
+    box-shadow var(--duration-normal),
+    transform var(--duration-normal) var(--ease-out-expo);
+}
+
+/* Цветное свечение за иконкой */
+.product::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -45%;
+  left: 50%;
+  width: 95%;
+  aspect-ratio: 1;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--product-color) 55%, transparent), transparent);
+  opacity: 0.28;
+  transform: translateX(-50%);
+  transition:
+    opacity var(--duration-normal),
+    transform var(--duration-normal) var(--ease-out-expo);
+  pointer-events: none;
+}
+
+/* Все иконки — в одной сетке 24×24, плоский глиф, свой цвет у каждого товара */
+.product__icon {
+  width: 1.875rem;
+  height: 1.875rem;
+  color: var(--product-color);
+  filter: drop-shadow(0 4px 8px color-mix(in srgb, var(--product-color) 45%, transparent));
+  transition: transform var(--duration-normal) var(--ease-out-expo);
+}
+
+.product--stars {
+  --product-color: #ffb224;
+}
+
+.product--gram {
+  --product-color: #4db8ff;
+}
+
+.product--gifts {
+  --product-color: #ff5c8a;
+}
+
+.product--steam {
+  --product-color: #dfe6ee;
+}
+
+.product--cards {
+  --product-color: #ff5a4d;
+}
+
+.product:hover {
+  color: var(--color-text);
+  transform: translateY(-2px);
+}
+
+.product:hover::before {
+  opacity: 0.5;
+}
+
+.product:active {
+  transform: scale(0.97);
+}
+
+.product[aria-checked="true"] {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--product-color) 26%, var(--color-surface-2)),
+    color-mix(in srgb, var(--product-color) 7%, var(--color-surface-2))
+  );
+  color: var(--color-text);
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--product-color) 80%, transparent),
+    0 12px 22px -14px var(--product-color);
+}
+
+.product[aria-checked="true"]::before {
+  opacity: 0.75;
+  transform: translateX(-50%) scale(1.15);
+}
+
+.product[aria-checked="true"] .product__icon {
+  transform: scale(1.14);
+}
+
+/* ── Форма заказа ──────────────────────────────────── */
+.order,
+.order__fields {
+  display: grid;
+  gap: 1rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.field__label,
+.pay legend {
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.field__control {
+  display: flex;
+  align-items: center;
+  min-height: 3.25rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  box-shadow: inset 0 0 0 1px transparent;
+  transition: box-shadow var(--duration-fast);
+}
+
+.field__control:focus-within {
+  box-shadow: inset 0 0 0 1.5px var(--color-accent);
+}
+
+.field--invalid .field__control {
+  box-shadow: inset 0 0 0 1.5px var(--color-red);
+}
+
+.field__prefix,
+.field__suffix {
+  padding-inline: 0.875rem 0;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.field__suffix {
+  padding-inline: 0 0.875rem;
+}
+
+.field__input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.75rem 0.875rem;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 1rem; /* не меньше 16px — iOS не увеличивает страницу при фокусе */
+  outline: none;
+}
+
+.field__prefix + .field__input {
+  padding-left: 0.125rem;
+}
+
+.field__input::placeholder {
+  color: var(--color-text-muted);
+}
+
+select.field__input {
+  appearance: none;
+  cursor: pointer;
+}
+
+.field__hint {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.field--invalid .field__hint {
+  color: var(--color-red);
+}
+
+/* Быстрый выбор: количество, срок, номинал, способ оплаты */
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.choices > .field__control,
+.choices > .field__hint {
+  flex: 1 1 100%;
+}
+
+/* Кнопка быстрого выбора: иконка из мини-приложения и число в одну строку */
+.choice.choice--preset {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding-inline: 0.5rem;
+}
+
+.preset-icon {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  object-fit: contain;
+}
+
+/* Регионы: флаг и название, два столбца; длинный список прокручивается внутри */
+.choices--region {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  max-height: 12.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* место под обводку выбранного региона, чтобы её не срезала прокрутка */
+  margin: -2px;
+  padding: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-surface-2) transparent;
+}
+
+/* двойной класс — чтобы перебить display: grid у базовой .choice, объявленной ниже */
+.choice.choice--region {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.choice.choice--region > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flag {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.14);
+}
+
+.code-card__region {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+/* Сервисы гифт-карт — ровная сетка обложек */
+.choices--brand {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (min-width: 480px) {
+  .choices--brand {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.choice {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 0.125rem;
+  flex: 1 1 auto;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.875rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-text-soft);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast),
+    color var(--duration-fast),
+    box-shadow var(--duration-fast);
+}
+
+.choice:hover {
+  color: var(--color-text);
+}
+
+.choice[aria-checked="true"],
+.choice[aria-pressed="true"] {
+  background: rgb(0 122 255 / 0.16);
+  color: var(--color-text);
+  box-shadow: inset 0 0 0 1.5px var(--color-accent);
+}
+
+.choice:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Подарки: крупный эмодзи и цена под ним */
+.choice--media {
+  flex: 1 1 20%;
+  padding: 0.5rem 0.25rem;
+}
+
+.choice--media > span:first-child {
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+
+/* Карта сервиса — в пропорции банковской карты (1,586 : 1). Слои: фирменный градиент,
+   блик сверху слева и затемнение снизу справа для объёма, точечная фактура, крупный
+   водяной знак логотипа за краем и связка «логотип + название» по центру. */
+.choice--brand {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Размеры связки считаются от ширины карты (cqw): она одинаково сидит
+     и на крупных картах в два столбца, и на мелких в четыре. */
+  container-type: size;
+  gap: 0;
+  aspect-ratio: 1.586;
+  min-height: 0;
+  padding: 0;
+  border-radius: 10% / 16%;
+  background:
+    radial-gradient(85% 110% at 8% 0%, rgb(255 255 255 / 0.3), transparent 58%),
+    radial-gradient(90% 120% at 100% 100%, rgb(0 0 0 / 0.42), transparent 62%),
+    linear-gradient(135deg, var(--brand-from), var(--brand-to));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.32),
+    inset 0 0 0 1px rgb(255 255 255 / 0.09),
+    0 10px 18px -12px var(--brand-to);
+  color: #fff;
+  transition:
+    transform var(--duration-normal) var(--ease-out-expo),
+    opacity var(--duration-normal),
+    filter var(--duration-normal),
+    box-shadow var(--duration-normal);
+}
+
+/* Точечная фактура, тающая к левому краю */
+.choice--brand::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(rgb(255 255 255 / 0.16) 0.6px, transparent 1px) 0 0 / 5px 5px;
+  mask-image: linear-gradient(100deg, transparent 35%, #000);
+  pointer-events: none;
+}
+
+/* Блик, пробегающий по карте при наведении */
+.choice--brand::after {
+  content: "";
+  position: absolute;
+  inset: -20% auto -20% 0;
+  width: 45%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.28), transparent);
+  transform: translateX(-140%) skewX(-18deg);
+  transition: transform 700ms var(--ease-out-expo);
+  pointer-events: none;
+}
+
+.choice--brand:hover {
+  color: #fff;
+  transform: translateY(-3px) scale(1.02);
+}
+
+.choice--brand:hover::after {
+  transform: translateX(340%) skewX(-18deg);
+}
+
+.choice--brand:active {
+  transform: scale(0.97);
+}
+
+.choice--brand[aria-checked="true"] {
+  background:
+    radial-gradient(85% 110% at 8% 0%, rgb(255 255 255 / 0.3), transparent 58%),
+    radial-gradient(90% 120% at 100% 100%, rgb(0 0 0 / 0.42), transparent 62%),
+    linear-gradient(135deg, var(--brand-from), var(--brand-to));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.32),
+    0 0 0 2px var(--color-surface),
+    0 0 0 3.5px #fff,
+    0 14px 26px -10px var(--brand-to);
+}
+
+/* Когда сервис выбран, остальные карты отступают на второй план */
+.choices--brand:has([aria-checked="true"]) .choice--brand:not([aria-checked="true"], :hover, :disabled) {
+  opacity: 0.5;
+  filter: saturate(0.7);
+}
+
+.choice--brand:disabled {
+  opacity: 0.45;
+  filter: grayscale(0.9);
+  transform: none;
+}
+
+.choice--brand:disabled::after {
+  display: none;
+}
+
+.brand-logo {
+  flex: none;
+  width: 21cqw;
+  height: 21cqw;
+  filter: drop-shadow(0 3px 6px rgb(0 0 0 / 0.35));
+}
+
+.brand-label {
+  /* Отступ задан у подписи, а не gap у карты: cqw на самом контейнере считается не от него. */
+  margin-left: 5cqw;
+  color: #fff;
+  font-size: 9.5cqw;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 1px 6px rgb(0 0 0 / 0.3);
+}
+
+.brand-mark {
+  position: absolute;
+  right: -18%;
+  bottom: -30%;
+  width: 78%;
+  color: rgb(255 255 255 / 0.13);
+  pointer-events: none;
+}
+
+/* Водяной знак на карте сервиса: крупный, с наклоном, уходит за правый нижний угол */
+.choice--brand .brand-mark {
+  z-index: -1;
+  right: -14cqw;
+  bottom: -22cqw;
+  width: 62cqw;
+  height: 62cqw;
+  color: rgb(255 255 255 / 0.1);
+  transform: rotate(-14deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choice--brand::after {
+    display: none;
+  }
+}
+
+.pay {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pay__options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.pay__options .choice {
+  display: grid;
+  justify-items: center;
+  gap: 0.125rem;
+  padding: 0.5rem 0.25rem;
+}
+
+.pay__price {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.order__error {
+  padding: 0.75rem 0.875rem;
+  border-radius: var(--radius-sm);
+  background: rgb(255 69 58 / 0.12);
+  color: #ff8a80;
+  font-size: var(--text-sm);
+}
+
+.order__submit {
+  width: 100%;
+  border: 0;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.order__submit:disabled {
+  opacity: 0.5;
+  cursor: progress;
+  transform: none;
+}
+
+/* ── Статус заказа ─────────────────────────────────── */
+.status {
+  display: grid;
+  justify-items: center;
+  gap: 0.875rem;
+  padding: 1.5rem 0 0.5rem;
+  text-align: center;
+}
+
+.status__title {
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.status__text {
+  max-width: 28ch;
+  color: var(--color-text-soft);
+}
+
+.status__spinner {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  border: 3px solid var(--color-line-strong);
+  border-top-color: var(--color-gold);
+  animation: status-spin 0.9s linear infinite;
+}
+
+/* ── Карта с кодом гифт-карты ──────────────────────── */
+.status:has(.code-card) {
+  justify-items: stretch;
+  padding-top: 0;
+}
+
+.code-card {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 0.5rem;
+  padding: clamp(1.125rem, 0.8rem + 1.6vw, 1.5rem);
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(120% 95% at 100% 0%, color-mix(in srgb, var(--brand-to) 60%, transparent), transparent 62%),
+    linear-gradient(165deg, #16171d 20%, color-mix(in srgb, var(--brand-from) 45%, #0e0f14));
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  text-align: left;
+}
+
+.code-card .brand-mark {
+  right: -8%;
+  bottom: -22%;
+  width: 62%;
+  color: rgb(255 255 255 / 0.07);
+}
+
+.code-card > :not(.brand-mark) {
+  position: relative;
+}
+
+.code-card__head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 0.625rem;
+}
+
+.code-card__logo {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.625rem;
+  background: linear-gradient(135deg, var(--brand-from), var(--brand-to));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18);
+  color: #fff;
+}
+
+.code-card__logo svg {
+  width: 1.375rem;
+  height: 1.375rem;
+}
+
+.code-card__name {
+  align-self: center;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.code-card__value {
+  display: grid;
+  justify-items: end;
+  gap: 0.125rem;
+  color: var(--color-text-soft);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.code-card__value strong {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.code-card__label {
+  margin-top: clamp(1.75rem, 1rem + 4vw, 3rem);
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.code-card__code {
+  justify-self: start;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: clamp(1.125rem, 0.8rem + 1.8vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: copy;
+  user-select: all;
+}
+
+.code-card__hint {
+  justify-self: end;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.status .code-card__copy {
+  background: linear-gradient(90deg, var(--brand-to), color-mix(in srgb, var(--brand-to) 65%, #fff));
+  color: #fff;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+  box-shadow: 0 12px 30px -12px var(--brand-to);
+}
+
+.status__check {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--color-gold-soft), var(--color-gold));
+  color: #1d1300;
+  font-size: 1.75rem;
+  font-weight: 700;
+  box-shadow: 0 12px 32px -8px rgb(255 178 36 / 0.6);
+  animation: status-pop var(--duration-slow) var(--ease-out-expo);
+}
+
+@keyframes status-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes status-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+.status__code {
+  width: 100%;
+  padding: 0.875rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.0625rem;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.status .btn {
+  width: 100%;
+  border: 0;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.site-footer {
+  justify-content: center;
+  border-top: 0;
+  padding-top: 0.5rem;
+}

@@ -1,0 +1,58 @@
+/* Токены взяты из мини-приложений Buddy Stars и Buddy Gift Cards. */
+:root {
+  /* Поверхности — тёмная тема обоих приложений */
+  --color-bg: #151517;
+  --color-surface: #1c1c1e;
+  --color-surface-2: #2c2c2e;
+  --color-line: rgb(255 255 255 / 0.08);
+  --color-line-strong: rgb(255 255 255 / 0.16);
+
+  /* Текст */
+  --color-text: #fff;
+  --color-text-soft: rgb(255 255 255 / 0.72);
+  --color-text-muted: #8e8e93;
+
+  /* Акценты: синий — общий, золото — Stars, красный — Gift Cards */
+  --color-accent: #007aff;
+  --color-gold: #ffb224;
+  --color-gold-soft: #ffcf70;
+  --color-red: #ff453a;
+  --color-red-deep: #c8102e;
+  --color-ton: #0098ea;
+
+  /* Фирменный переливающийся кант кнопки оплаты из Stars */
+  --gradient-rainbow: conic-gradient(from 0deg, #00f0ff, #7b61ff, #ff477e, #ff9a00, #00f0ff);
+  --gradient-ember: conic-gradient(from 0deg, #ff453a, #ffcf70, #ff9a00, #ff477e, #ff453a);
+
+  /* Типографика */
+  --font-display: "Unbounded", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --text-sm: 0.875rem;
+  --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  --text-lg: clamp(1.125rem, 1rem + 0.6vw, 1.375rem);
+  --text-h3: clamp(1.25rem, 1.1rem + 0.7vw, 1.625rem);
+  --text-h2: clamp(1.625rem, 1.1rem + 2.6vw, 3.25rem);
+  --text-hero: clamp(2rem, 0.9rem + 5.4vw, 5rem);
+  --text-figure: clamp(2rem, 1.2rem + 3.6vw, 4rem);
+
+  /* Ритм */
+  --space-gutter: clamp(1rem, 0.4rem + 3vw, 3rem);
+  --space-section: clamp(4.5rem, 3rem + 7vw, 9rem);
+  --space-gap: clamp(0.75rem, 0.5rem + 1vw, 1.25rem);
+  --content-max: 76rem;
+
+  /* Радиусы — крупные скругления из приложений */
+  --radius-sm: 0.75rem;
+  --radius-md: 1.5rem;
+  --radius-lg: clamp(1.75rem, 1.2rem + 2vw, 2.5rem);
+  --radius-pill: 999px;
+
+  /* Движение */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 700ms;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --header-height: 4rem;
+}

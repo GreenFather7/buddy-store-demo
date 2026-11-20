@@ -1,0 +1,228 @@
+import { ApiError } from './api.js'
+import { CONFIG } from './config.js'
+import { BRANDS } from './brands.js'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand } from './dom.js'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js'
+import { PRODUCTS, checkOrder } from './products.js'
+
+const ORDER_KEY = 'buddy.order'
+const PENDING_LIFETIME_MS = 30 * 60 * 1000
+const COPIED_FEEDBACK_MS = 1500
+const HTTP_NOT_FOUND = 404
+const SUPPORT_URL = 'https://t.me/Buddy_support_bot'
+
+const FINAL_STATES = [ORDER_STATE.DONE, ORDER_STATE.FAILED]
+
+// ── Хранение текущего заказа: переживает уход на страницу оплаты ──
+const isValidOrder = (order) =>
+  Boolean(order) &&
+  typeof order === 'object' &&
+  Object.hasOwn(PRODUCTS, order.productId) &&
+  ['stars', 'cards'].includes(order.ref?.shop) &&
+  ['string', 'number'].includes(typeof order.ref?.orderId) &&
+  Number.isFinite(order.createdAt)
+
+export const loadOrder = () => {
+  try {
+    const order = JSON.parse(localStorage.getItem(ORDER_KEY) ?? 'null')
+    return isValidOrder(order) ? order : null
+  } catch {
+    return null
+  }
+}
+
+export const saveOrder = (order) => {
+  try {
+    localStorage.setItem(ORDER_KEY, JSON.stringify(order))
+  } catch {
+    // без хранилища статус виден, пока открыта вкладка
+  }
+}
+
+const clearOrder = () => {
+  try {
+    localStorage.removeItem(ORDER_KEY)
+  } catch {
+    // нечего чистить
+  }
+}
+
+// ── Отрисовка ─────────────────────────────────────────────────────
+const copyButton = (label, value) =>
+  el('button', {
+    class: 'btn btn--ghost',
+    type: 'button',
+    text: label,
+    onClick: async (event) => {
+      const button = event.currentTarget
+      const copied = await copyText(value)
+      button.textContent = copied ? 'Скопировано' : 'Выделите и скопируйте вручную'
+      setTimeout(() => {
+        button.textContent = label
+      }, COPIED_FEEDBACK_MS)
+    },
+  })
+
+const COPY_HINT = 'нажмите, чтобы скопировать'
+
+/** Карта гифт-карты с кодом: фирменные цвета сервиса, номинал, регион и сам код. */
+const codeCard = (order, codes) => {
+  const brandId = String(order.summary?.brand ?? '')
+  if (!Object.hasOwn(BRANDS, brandId) || codes.length === 0) return null
+  const brand = BRANDS[brandId]
+  const hint = el('p', { class: 'code-card__hint', text: COPY_HINT })
+  const copy = async (value) => {
+    hint.textContent = (await copyText(value)) ? 'скопировано' : 'выделите и скопируйте вручную'
+    setTimeout(() => {
+      hint.textContent = COPY_HINT
+    }, COPIED_FEEDBACK_MS)
+  }
+  const card = el('div', { class: 'code-card' }, [
+    el('div', { class: 'code-card__head' }, [
+      el('span', { class: 'code-card__logo' }, [logoIcon(brand.path)]),
+      el('span', { class: 'code-card__name', text: brand.label }),
+      el('span', { class: 'code-card__value' }, [
+        el('strong', { text: String(order.summary.nominal ?? '') }),
+        order.summary.region &&
+          el('span', { class: 'code-card__region' }, [
+            flagUrl(order.summary.regionCode) && flagImage(flagUrl(order.summary.regionCode)),
+            String(order.summary.region),
+          ]),
+      ]),
+    ]),
+    el('p', { class: 'code-card__label', text: 'Код активации' }),
+    ...codes.map((code) =>
+      el('button', { class: 'code-card__code', type: 'button', text: code, onClick: () => copy(code) }),
+    ),
+    hint,
+  ])
+  const copyAll = el('button', {
+    class: 'btn code-card__copy',
+    type: 'button',
+    text: 'Скопировать код',
+    onClick: () => copy(codes.join('\n')),
+  })
+  copyAll.style.setProperty('--brand-from', brand.from)
+  copyAll.style.setProperty('--brand-to', brand.to)
+  return [paintBrand(card, brand), copyAll]
+}
+
+const payLink = (label, url) =>
+  isSafeLink(url)
+    ? el('a', { class: 'btn btn--gold', href: url, target: '_blank', rel: 'noopener', text: label })
+    : null
+
+const pendingView = (order) => {
+  if (order.kind === 'ton' && order.ton) {
+    const { address, amountTon, memo } = order.ton
+    return [
+      el('div', { class: 'status__spinner' }),
+      el('p', { class: 'status__title', text: `Переведите ${trimDecimals(amountTon)} TON` }),
+      el('p', { class: 'status__text', text: 'Комментарий к переводу обязателен — по нему мы найдём платёж.' }),
+      payLink('Открыть кошелёк', buildTonLink({ address, amountTon, memo })),
+      el('code', { class: 'status__code', text: address }),
+      copyButton('Скопировать адрес', address),
+      el('code', { class: 'status__code', text: memo }),
+      copyButton('Скопировать комментарий', memo),
+    ]
+  }
+  return [
+    el('div', { class: 'status__spinner' }),
+    el('p', { class: 'status__title', text: 'Ждём оплату' }),
+    el('p', { class: 'status__text', text: 'Статус обновится здесь сам, страницу можно не закрывать.' }),
+    payLink(order.method === 'usdt' ? 'Оплатить в CryptoBot' : 'Перейти к оплате', order.url),
+  ]
+}
+
+const VIEW = {
+  [ORDER_STATE.PENDING]: pendingView,
+  [ORDER_STATE.PAID]: () => [
+    el('div', { class: 'status__spinner' }),
+    el('p', { class: 'status__title', text: 'Оплата получена' }),
+    el('p', { class: 'status__text', text: 'Отправляем. Обычно это занимает пару минут.' }),
+  ],
+  [ORDER_STATE.DELAYED]: () => [
+    el('div', { class: 'status__spinner' }),
+    el('p', { class: 'status__title', text: 'Код задерживается' }),
+    el('p', { class: 'status__text', text: 'Оплата прошла. Код появится здесь, как только поставщик его выдаст.' }),
+  ],
+  [ORDER_STATE.DONE]: (order, result) =>
+    codeCard(order, result.codes ?? []) ?? [
+      el('div', { class: 'status__check', 'aria-hidden': 'true', text: '✓' }),
+      el('p', { class: 'status__title', text: PRODUCTS[order.productId].doneText }),
+      ...(result.codes ?? []).flatMap((code) => [
+        el('code', { class: 'status__code', text: code }),
+        copyButton('Скопировать код', code),
+      ]),
+    ],
+  [ORDER_STATE.FAILED]: () => [
+    el('p', { class: 'status__title', text: 'Заказ не выполнен' }),
+    el('p', { class: 'status__text', text: 'Если деньги списались, напишите в поддержку — разберёмся.' }),
+    el('a', { class: 'btn btn--ghost', href: SUPPORT_URL, target: '_blank', rel: 'noopener', text: 'Поддержка' }),
+  ],
+}
+
+/**
+ * Показывает статус заказа и опрашивает бэкенд, пока заказ не завершится.
+ * @param {HTMLElement} container
+ * @param {object} order сохранённый заказ
+ * @param {() => void} onClose вернуться к форме
+ */
+export const showStatus = (container, order, onClose) => {
+  let timer = 0
+  let isClosed = false
+  let lastKey = ''
+
+  const close = () => {
+    isClosed = true
+    clearTimeout(timer)
+    clearOrder()
+    container.hidden = true
+    container.replaceChildren()
+    onClose()
+  }
+
+  const render = (result) => {
+    // Перерисовываем только при смене состояния: кнопки не теряют фокус и надпись «Скопировано».
+    const key = `${result.state}:${(result.codes ?? []).length}`
+    if (key === lastKey) return
+    lastKey = key
+    const isFinal = FINAL_STATES.includes(result.state)
+    container.replaceChildren(
+      ...VIEW[result.state](order, result).filter(Boolean),
+      el('button', {
+        class: 'btn btn--ghost',
+        type: 'button',
+        text: isFinal ? 'Новая покупка' : 'Отменить и вернуться',
+        onClick: close,
+      }),
+    )
+  }
+
+  const poll = async () => {
+    if (isClosed) return
+    let result
+    try {
+      result = await checkOrder(order.ref)
+    } catch (error) {
+      // Заказ не найден (например, очищены данные сайта) — показывать нечего.
+      const isMissing = error instanceof ApiError && error.status === HTTP_NOT_FOUND
+      result = { state: isMissing ? ORDER_STATE.FAILED : ORDER_STATE.PENDING }
+      if (!isMissing && lastKey) result = null // временный сбой сети: оставляем прежний экран
+    }
+    if (isClosed) return
+    if (result) {
+      const isStale = result.state === ORDER_STATE.PENDING && Date.now() - order.createdAt > PENDING_LIFETIME_MS
+      if (isStale) return close() // счёт давно истёк, оплаты не было
+      render(result)
+      // Готовый заказ остаётся в хранилище до «Новая покупка»: код гифт-карты
+      // должен пережить обновление страницы — другой копии у гостя нет.
+      if (FINAL_STATES.includes(result.state)) return
+    }
+    timer = setTimeout(poll, CONFIG.statusPollMs)
+  }
+
+  container.hidden = false
+  render({ state: ORDER_STATE.PENDING })
+  poll()
+}
