@@ -11,6 +11,8 @@ import { initTelegram } from './telegram.js'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
+const TYPING_CLASS = 'is-typing'
+const TYPING_LEAVE_MS = 300
 /** Поле с username получателя в разделах Telegram. */
 const RECIPIENT_KEY = 'recipient'
 const DEFAULT_PRODUCT = 'stars'
@@ -436,6 +438,21 @@ const submit = async (event) => {
   renderPay()
 }
 
+// На телефоне клавиатура закрывает пол-экрана: пока идёт ввод, шапка убирается (стили — .is-typing).
+// Класс снимается с задержкой, чтобы нажатие на кнопку под полем не промахнулось из-за сдвига.
+const watchTyping = () => {
+  let leaveTimer = 0
+  form.addEventListener('focusin', (event) => {
+    if (!event.target.matches('input')) return
+    clearTimeout(leaveTimer)
+    document.documentElement.classList.add(TYPING_CLASS)
+    window.scrollTo(0, 0)
+  })
+  form.addEventListener('focusout', () => {
+    leaveTimer = setTimeout(() => document.documentElement.classList.remove(TYPING_CLASS), TYPING_LEAVE_MS)
+  })
+}
+
 const init = () => {
   productsEl.addEventListener('click', (event) => {
     const button = event.target.closest('[data-product]')
@@ -444,6 +461,7 @@ const init = () => {
     }
   })
   form.addEventListener('submit', submit)
+  watchTyping()
 
   // Платёжка возвращает с ?shop=…&order=… — сам заказ лежит в хранилище, адрес чистим.
   const params = new URLSearchParams(window.location.search)
