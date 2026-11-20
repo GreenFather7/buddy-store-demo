@@ -1297,3 +1297,8 @@ select.field__input {
     animation: none;
   }
 }
+
+/* надпись на кнопке — отдельный блок, чтобы новая сумма могла всплыть снизу (transform у строчного текста не работает) */
+[data-submit-label] {
+  display: inline-block;
+}

@@ -57,10 +57,24 @@ let giftPreview = null
 /** Текст ошибки показывается на самой кнопке оплаты: под формой ничего не появляется и не сдвигается. */
 let errorMessage = null
 
+const LABEL_IN = [
+  { opacity: 0, transform: 'translateY(0.55em)', filter: 'blur(2px)' },
+  { opacity: 1, transform: 'none', filter: 'blur(0)' },
+]
+const LABEL_IN_MS = 320
+
 const updateSubmit = () => {
   const price = state?.quote?.[state.method]
   submitEl.classList.toggle('order__submit--error', Boolean(errorMessage))
-  submitLabelEl.textContent = errorMessage ?? (price && /\d/.test(price) ? `Оплатить ${price}` : 'Оплатить')
+  // пока считается новая цена, на кнопке остаётся прежняя сумма — без мигания «Оплатить»
+  if (!errorMessage && !state?.quote && state && isComplete()) return
+  const label = errorMessage ?? (price && /\d/.test(price) ? `Оплатить ${price}` : 'Оплатить')
+  if (submitLabelEl.textContent === label) return
+  submitLabelEl.textContent = label
+  // новая сумма или текст ошибки на кнопке мягко всплывают снизу
+  if (!prefersLessMotion.matches) {
+    submitLabelEl.animate(LABEL_IN, { duration: LABEL_IN_MS, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' })
+  }
 }
 
 const showError = (text) => {
