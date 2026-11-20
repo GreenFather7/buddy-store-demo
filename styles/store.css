@@ -1619,3 +1619,19 @@ select.field__input {
 .choices > .choice--media {
   font-size: var(--icon-visible);
 }
+
+/* упрощённое окно розыгрыша: билеты — одной строкой */
+p.raffle-sheet__tickets {
+  justify-self: center;
+  margin: 0.25rem 0 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-soft);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+p.raffle-sheet__tickets--in {
+  background: rgb(255 178 36 / 0.12);
+  color: var(--color-gold);
+}

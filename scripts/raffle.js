@@ -27,8 +27,6 @@ const DEMO_PRIZE = {
   image: 'assets/raffle/plushpepe-1.jpg',
   animation: 'assets/raffle/plushpepe-1.json',
 }
-/** Сколько билетов у всех участников — чтобы показать шанс. В боте это сумма raffle_tickets за день. */
-const DEMO_TOTAL_TICKETS = 240
 
 /** До какого момента идёт текущий розыгрыш (ближайшие 20:00). */
 const nextDraw = (now = new Date()) => {
@@ -98,12 +96,6 @@ const ticketsLine = (count) =>
     ? `Вы участвуете · ${count} ${ticketsWord(count)}`
     : `${count} из ${MIN_TICKETS} ${ticketsWord(MIN_TICKETS)} для участия`
 
-const chance = (count) => {
-  if (count < MIN_TICKETS) return null
-  const percent = (count / (DEMO_TOTAL_TICKETS + count)) * 100
-  return percent < 1 ? 'меньше 1%' : `${Math.round(percent)}%`
-}
-
 /**
  * Окно розыгрыша: приз с анимацией, таймер, ваши билеты и правила.
  * @param {() => void} onBuyStars перейти к покупке звёзд
@@ -131,8 +123,6 @@ const openSheet = (onBuyStars) => {
     if (played) prize.classList.add('raffle-sheet__prize--playing')
   })
 
-  const progress = el('span', { class: 'raffle-sheet__progress' }, [el('i', {})])
-  progress.firstChild.style.setProperty('--progress', String(Math.min(tickets / MIN_TICKETS, 1)))
 
   const close = () => {
     clearInterval(timer)
@@ -144,44 +134,29 @@ const openSheet = (onBuyStars) => {
   const onKey = (event) => {
     if (event.key === 'Escape') close()
   }
-  const chanceText = chance(tickets)
 
+  // Только нужное: приз, когда розыгрыш, сколько у вас билетов и как получить ещё.
   const sheet = el('div', { class: 'test-sheet raffle-sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Розыгрыш NFT' }, [
     el('div', { class: 'test-sheet__backdrop', onClick: close }),
     el('div', { class: 'test-sheet__panel raffle-sheet__panel' }, [
-      el('p', { class: 'test-sheet__badge raffle-sheet__badge', text: 'Розыгрыш NFT' }),
       el('div', { class: 'raffle-sheet__stage' }, [el('span', { class: 'raffle-sheet__glow' }), prize]),
       el('p', { class: 'raffle-sheet__title' }, [
         DEMO_PRIZE.title,
         el('span', { class: 'raffle-sheet__number', text: ` ${DEMO_PRIZE.number}` }),
       ]),
       el('p', { class: 'raffle-sheet__when' }, [el('span', { text: 'Розыгрыш через ' }), clock]),
-      el('div', { class: 'raffle-sheet__tickets' }, [
-        el('span', { class: 'raffle-sheet__ticket-icon', text: '🎟', 'aria-hidden': 'true' }),
-        el('div', { class: 'raffle-sheet__ticket-text' }, [
-          el('strong', { text: ticketsLine(tickets) }),
-          el('span', {
-            text: chanceText ? `Шанс выиграть — ${chanceText}` : 'Больше билетов — выше шанс',
-          }),
-          progress,
-        ]),
-      ]),
-      el('ul', { class: 'raffle-sheet__rules' }, [
-        el('li', { text: '1 билет за каждые 50 звёзд' }),
-        el('li', { text: `Розыгрыш каждый день в ${RAFFLE_HOUR}:00` }),
-        el('li', { text: `Участвуют от ${MIN_TICKETS} билетов` }),
-        el('li', { text: 'Подарок придёт победителю в Telegram' }),
-      ]),
+      el('p', {
+        class: `raffle-sheet__tickets${tickets >= MIN_TICKETS ? ' raffle-sheet__tickets--in' : ''}`,
+        text: `🎟 ${ticketsLine(tickets)}`,
+      }),
       el('button', {
         class: 'btn btn--gold test-sheet__option raffle-sheet__buy',
         type: 'button',
-        text: 'Купить звёзды',
         onClick: () => {
           close()
           onBuyStars()
         },
-      }),
-      el('button', { class: 'test-sheet__cancel', type: 'button', text: 'Закрыть', onClick: close }),
+      }, [el('span', { text: 'Купить звёзды' }), el('small', { text: `1 билет за ${STARS_PER_TICKET} звёзд` })]),
     ]),
   ])
   document.addEventListener('keydown', onKey)
