@@ -197,7 +197,6 @@ const gifts = {
         return items.map((item) => ({
           value: item.id,
           label: item.emoji,
-          sub: formatRub(item.total_rub),
           data: item,
         }))
       },
