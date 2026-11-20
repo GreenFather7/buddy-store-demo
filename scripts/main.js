@@ -388,7 +388,10 @@ const optionButton = (field, option, group) => {
         group.querySelectorAll('[role="radio"]').forEach((other) => other.setAttribute('aria-checked', 'false'))
         button.setAttribute('aria-checked', 'true')
         setValue(field, option.value, option.data)
-        if (field.hasPreview) giftPreview?.show({ id: option.value, emoji: option.label })
+        if (field.hasPreview) {
+          if (option.preview) giftPreview?.showMedia(option.preview)
+          else giftPreview?.show({ id: option.value, emoji: option.label })
+        }
       },
     },
     [

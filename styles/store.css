@@ -1654,3 +1654,13 @@ p.raffle-sheet__tickets--in {
   opacity: 0.35;
   transition: opacity 200ms;
 }
+
+/* картинка тарифа видна, пока грузится анимация, затем анимация встаёт на её место */
+.gift-preview {
+  position: relative;
+}
+
+.gift-preview__stage--over {
+  position: absolute;
+  inset: 0;
+}

@@ -137,12 +137,20 @@ const premium = {
       type: 'choice',
       variant: 'preset',
       label: 'Срок',
+      // выбранная коробка встаёт справа в строку ввода и проигрывает свою анимацию
+      hasPreview: true,
       // Подарочные коробки Telegram Premium: зелёная — 3 месяца, синяя — 6, красная — год.
+      // Анимации — из TGS-стикеров бота (assets/premium/<N>m.json), картинки — их кадр.
       options: async () =>
         PREMIUM_MONTHS.map((months) => ({
           value: months,
           label: PREMIUM_LABEL[months],
           icon: `assets/premium/${months}m.svg`,
+          preview: {
+            key: `premium-${months}`,
+            image: `assets/premium/${months}m.svg`,
+            animation: `assets/premium/${months}m.json`,
+          },
         })),
     },
   ],

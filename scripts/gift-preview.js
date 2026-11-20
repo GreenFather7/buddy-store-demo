@@ -64,6 +64,30 @@ export const createGiftPreview = (slot) => {
       wanted = null
       clear()
     },
+    /**
+     * Картинка, поверх которой запускается Lottie-анимация (например, коробка тарифа Premium).
+     * @param {{ key: string, image: string, animation: string }} media
+     */
+    async showMedia(media) {
+      wanted = media.key
+      clear()
+      const image = document.createElement('img')
+      image.className = 'gift-preview__image'
+      image.alt = ''
+      image.src = media.image
+      const stage = document.createElement('span')
+      stage.className = 'gift-preview__stage gift-preview__stage--over'
+      slot.replaceChildren(image, stage)
+      const played = await playLottie(stage, media.animation)
+      if (wanted !== media.key) {
+        played?.destroy()
+        return
+      }
+      if (played) {
+        animation = played
+        image.remove()
+      }
+    },
     async show(gift) {
       wanted = gift.id
       clear()
