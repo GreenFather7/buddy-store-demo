@@ -194,6 +194,8 @@ const gifts = {
       key: 'gift',
       type: 'choice',
       label: 'Подарок',
+      // выбранный подарок показывается справа в строке ввода со своей анимацией
+      hasPreview: true,
       variant: 'media',
       options: async () => {
         const { items } = await request('stars', '/api/gifts/list')

@@ -3,6 +3,7 @@ import { BRANDS } from './brands.js'
 import { CONFIG } from './config.js'
 import { el, flagImage, isSafeLink, logoIcon } from './dom.js'
 import { ensureFreshBuild } from './fresh.js'
+import { createGiftPreview } from './gift-preview.js'
 import { createHero, heroGlyph } from './hero.js'
 import { mixHex } from './hero-math.js'
 import { avatarUrl, describeError, groupThousands } from './lib.js'
@@ -47,6 +48,8 @@ let avatarTimer = 0
 let shownRecipient = null
 /** key → { wrapper, hint, reload } для полей текущего товара. */
 let controls = {}
+/** Показ выбранного подарка в строке ввода; есть только в разделе подарков. */
+let giftPreview = null
 
 const showError = (text) => {
   errorEl.textContent = text ?? ''
@@ -261,6 +264,7 @@ const optionButton = (field, option, group) => {
         group.querySelectorAll('[role="radio"]').forEach((other) => other.setAttribute('aria-checked', 'false'))
         button.setAttribute('aria-checked', 'true')
         setValue(field, option.value, option.data)
+        if (field.hasPreview) giftPreview?.show({ id: option.value, emoji: option.label })
       },
     },
     [
@@ -354,6 +358,14 @@ const buildFields = () => {
     controls[field.key] = { wrapper, hint, reload: built.reload }
     nodes.push(wrapper)
   })
+  giftPreview?.clear()
+  giftPreview = null
+  const firstControl = nodes[0]?.querySelector('.field__control')
+  if (firstControl && state.product.fields.some((field) => field.hasPreview)) {
+    const slot = el('span', { class: 'gift-preview', 'aria-hidden': 'true' })
+    firstControl.append(slot)
+    giftPreview = createGiftPreview(slot)
+  }
   fieldsEl.replaceChildren(...nodes)
   state.product.fields.forEach((field) => controls[field.key].reload())
 }
