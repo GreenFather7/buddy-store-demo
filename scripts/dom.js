@@ -21,6 +21,14 @@ export const el = (tag, props = {}, children = []) => {
 const SVG_NS = 'http://www.w3.org/2000/svg'
 const ICON_GRID = '0 0 24 24'
 
+/** SVG-элемент с атрибутами и детьми — для значков, которые рисуются анимацией обводки. */
+export const svgEl = (tag, attributes = {}, children = []) => {
+  const node = document.createElementNS(SVG_NS, tag)
+  Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, value))
+  node.append(...children)
+  return node
+}
+
 /**
  * Логотип сервиса в сетке 24×24. Цвет берётся из CSS (currentColor), поэтому один
  * и тот же контур годится и для значка, и для водяного знака на карте.

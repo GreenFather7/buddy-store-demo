@@ -10,6 +10,8 @@ import { avatarUrl, describeError, groupThousands } from './lib.js'
 import { PRODUCTS, loadCardServices, normalizeValue } from './products.js'
 import { loadOrder, saveOrder, showStatus } from './status.js'
 import { initTelegram } from './telegram.js'
+import { askTestPayment, mountBalance } from './testpay.js'
+import { settleDemoOrder } from './mock.js'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -441,6 +443,22 @@ const openStatus = (order) => {
   })
 }
 
+// Тестовый режим: вместо платёжки — окно тестовой оплаты, где выбирается исход заказа.
+// Заказ не сохраняется: после перезагрузки тестовой страницы восстанавливать нечего.
+const payInTestMode = async (order) => {
+  const activeCapsule = productsEl.querySelector('[aria-checked="true"]')
+  const outcome = await askTestPayment({
+    title: order.summary?.line ? `${activeCapsule?.textContent.trim() ?? ''} · ${order.summary.line}` : (activeCapsule?.textContent.trim() ?? ''),
+    priceText: state.quote?.[state.method] ?? '',
+    rubText: state.quote?.sbp ?? '',
+  })
+  state = { ...state, isBusy: false }
+  renderPay()
+  if (!outcome) return
+  settleDemoOrder(order.ref.orderId, outcome)
+  openStatus({ ...order, testOutcome: outcome })
+}
+
 const submit = async (event) => {
   event.preventDefault()
   if (state.isBusy) return
@@ -463,6 +481,10 @@ const submit = async (event) => {
       method: state.method,
       summary: state.product.summary?.(state.values, state.optionData),
       createdAt: Date.now(),
+    }
+    if (CONFIG.demo) {
+      await payInTestMode(order)
+      return
     }
     saveOrder(order)
     // СБП: уходим на страницу оплаты, платёжка вернёт покупателя на сайт.
@@ -509,6 +531,7 @@ const init = () => {
     }
   })
   form.addEventListener('submit', submit)
+  if (CONFIG.demo) mountBalance(submitEl)
   keepFormInPlace()
 
   // Платёжка возвращает с ?shop=…&order=… — сам заказ лежит в хранилище, адрес чистим.

@@ -1,8 +1,16 @@
 // Демо-режим (?demo=1): ответы в форме настоящих API, чтобы смотреть сайт без бэкенда.
-// Заказы «оплачиваются» сами через несколько секунд. В боевом режиме не используется.
+// Исход заказа выбирают в окне тестовой оплаты (settleDemoOrder): успех, отказ платежа,
+// ошибка выдачи или задержка. В боевом режиме не используется.
 
-const PAID_AFTER_MS = 5000
-const DONE_AFTER_MS = 10000
+import { ApiError } from './api.js'
+
+/** Сколько заказ «отправляется» после оплаты, прежде чем показать итог. */
+const DELIVERY_MS = 1800
+const HTTP_NOT_FOUND = 404
+const HTTP_CONFLICT = 409
+/** Тестовые ники и логины, на которых сервер отвечает ошибкой — чтобы проверить экраны ошибок. */
+const MISSING_ACCOUNT = 'nouser'
+const HAS_PREMIUM = 'hasprem'
 const NETWORK_DELAY_MS = 250
 const RUB_PER_STAR = 1.75
 const RUB_PER_USDT = 90
@@ -23,9 +31,32 @@ const createOrder = (extra = {}) => {
   return id
 }
 
-const age = (orderId) => Date.now() - (orders.get(String(orderId))?.createdAt ?? 0)
+/** @typedef {'success'|'declined'|'failed'|'delayed'} DemoOutcome */
 
-const starsInvoice = () => {
+/** Исход выбран в окне тестовой оплаты. До этого заказ ждёт оплату. */
+export const settleDemoOrder = (orderId, outcome) => {
+  const key = String(orderId)
+  const order = orders.get(key)
+  if (order) orders.set(key, { ...order, outcome, settledAt: Date.now() })
+}
+
+/** Что сейчас с заказом: 'pending' | 'paid' | итог. */
+const phase = (orderId) => {
+  const order = orders.get(String(orderId))
+  if (!order?.outcome) return 'pending'
+  if (order.outcome === 'declined') return 'declined'
+  if (order.outcome === 'delayed') return 'delayed'
+  return Date.now() - order.settledAt < DELIVERY_MS ? 'paid' : order.outcome
+}
+
+const rejectAccount = (name, status = HTTP_NOT_FOUND) => {
+  if (String(name ?? '').toLowerCase() === (status === HTTP_CONFLICT ? HAS_PREMIUM : MISSING_ACCOUNT)) {
+    throw new ApiError(status, 'demo')
+  }
+}
+
+const starsInvoice = ({ body }) => {
+  rejectAccount(body.recipient_username)
   const orderId = createOrder()
   return {
     payments: [
@@ -95,7 +126,10 @@ const ROUTES = {
       }),
     ),
   }),
-  'stars POST /api/premium/create_invoice': starsInvoice,
+  'stars POST /api/premium/create_invoice': (request) => {
+    rejectAccount(request.body.recipient_username, HTTP_CONFLICT)
+    return starsInvoice(request)
+  },
   'stars POST /api/premium/ton_intent': () => tonIntent('prem', 1290),
 
   'stars GET /api/topup/price': ({ query }) => money(query.amount_ton * RUB_PER_TON * 1.18),
@@ -108,15 +142,15 @@ const ROUTES = {
 
   'stars POST /api/ton_verify': ({ body }) => {
     const orderId = body.memo.split('_')[1]
-    return { status: age(orderId) > PAID_AFTER_MS ? 'completed' : 'pending' }
+    return { status: phase(orderId) === 'pending' ? 'pending' : 'completed' }
   },
   'stars GET /api/check_payment': ({ query }) => {
-    const elapsed = age(query.order_id)
-    return { status: elapsed > DONE_AFTER_MS ? 'stars_sent' : elapsed > PAID_AFTER_MS ? 'paid' : 'pending' }
+    const STARS_STATUS = { pending: 'pending', paid: 'paid', delayed: 'paid', success: 'stars_sent' }
+    return { status: STARS_STATUS[phase(query.order_id)] ?? phase(query.order_id) }
   },
 
   'cards GET /api/catalog': () => ({ items: CATALOG }),
-  'cards GET /api/steam/price': ({ query }) => ({
+  'cards GET /api/steam/price': ({ query }) => rejectAccount(query.account) ?? ({
     account: query.account,
     net_amount: Number(query.amount),
     user_price: Math.ceil(query.amount * 1.07),
@@ -145,12 +179,15 @@ const ROUTES = {
       in_stock: true,
     })),
   }),
-  'cards POST /api/steam/create_order': () => cardsOrder(false),
+  'cards POST /api/steam/create_order': ({ body }) => {
+    rejectAccount(body.account)
+    return cardsOrder(false)
+  },
   'cards POST /api/vouchers/create_order': () => cardsOrder(true),
   'cards GET /api/check_order': ({ query }) => {
-    const elapsed = age(query.order_id)
     const order = orders.get(query.order_id)
-    const status = elapsed > DONE_AFTER_MS ? 'Success' : elapsed > PAID_AFTER_MS ? 'Paid' : 'Pending'
+    const CARDS_STATUS = { pending: 'Pending', paid: 'Paid', delayed: 'Stuck', success: 'Success', declined: 'Declined', failed: 'Fail' }
+    const status = CARDS_STATUS[phase(query.order_id)]
     const hasCode = order?.hasCode !== false
     return {
       status,

@@ -3,6 +3,7 @@ import { BRANDS } from './brands.js'
 import {
   ORDER_STATE,
   flagUrl,
+  failureReason,
   formatRub,
   groupThousands,
   isValidSteamLogin,
@@ -82,7 +83,7 @@ export const checkStarsOrder = async ({ orderId, memo }) => {
     if (status === 'pending') return { state: ORDER_STATE.PENDING }
   }
   const { status } = await request('stars', '/api/check_payment', { query: { order_id: orderId } })
-  return { state: mapStarsStatus(status) }
+  return { state: mapStarsStatus(status), reason: failureReason(status) }
 }
 
 export const checkCardsOrder = async ({ orderId }) => {
@@ -91,11 +92,12 @@ export const checkCardsOrder = async ({ orderId }) => {
   const state = mapCardsStatus(order.status)
   // «Готово» без кода у ваучера значит, что код ещё не записан: ждём, а не показываем пустоту.
   const isCodeMissing = state === ORDER_STATE.DONE && order.product_type !== 'steam' && codes.length === 0
-  return { state: isCodeMissing ? ORDER_STATE.DELAYED : state, codes }
+  return { state: isCodeMissing ? ORDER_STATE.DELAYED : state, codes, reason: failureReason(order.status) }
 }
 
 const stars = {
   id: 'stars',
+  summary: ({ recipient, amount }) => ({ line: `${groupThousands(amount)} ⭐ для @${recipient}` }),
   doneText: 'Звёзды отправлены',
   fields: [
     recipientField,
@@ -123,6 +125,7 @@ const stars = {
 
 const premium = {
   id: 'premium',
+  summary: ({ recipient, months }) => ({ line: `Premium на ${PREMIUM_LABEL[months] ?? `${months} мес.`} для @${recipient}` }),
   doneText: 'Premium подключён',
   fields: [
     recipientField,
@@ -158,6 +161,7 @@ const premium = {
 
 const gram = {
   id: 'gram',
+  summary: ({ recipient, amount }) => ({ line: `${groupThousands(amount)} Gram для @${recipient}` }),
   doneText: 'Gram отправлен',
   fields: [
     recipientField,
@@ -187,6 +191,7 @@ const gram = {
 
 const gifts = {
   id: 'gifts',
+  summary: ({ recipient, gift }, options) => ({ line: `для @${recipient}`, gift: { id: gift, emoji: options.gift?.emoji ?? '🎁' } }),
   doneText: 'Подарок отправлен',
   fields: [
     recipientField,
@@ -234,6 +239,7 @@ const cardsOrder = (path, body) =>
 
 const steam = {
   id: 'steam',
+  summary: ({ account, amount }) => ({ line: `${groupThousands(amount)} ₽ на аккаунт ${account}` }),
   doneText: 'Steam пополнен',
   methods: ['sbp', 'usdt'],
   fields: [

@@ -6,7 +6,8 @@ export const CONFIG = Object.freeze({
   // без завершающего слеша, например 'https://example.ru/buddy_steambot'.
   cardsApi: '',
   // Как часто спрашивать статус заказа после оплаты.
-  statusPollMs: 3000,
+  // в тестовом режиме чаще: итог тестовой оплаты виден почти сразу
+  statusPollMs: new URLSearchParams(window.location.search).has('demo') ? 700 : 3000,
   // Демо-режим без бэкенда: открыть сайт с ?demo=1.
   demo: new URLSearchParams(window.location.search).has('demo'),
 })

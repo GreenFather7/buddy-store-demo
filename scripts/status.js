@@ -1,9 +1,10 @@
 import { ApiError } from './api.js'
 import { CONFIG } from './config.js'
 import { BRANDS } from './brands.js'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand } from './dom.js'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl } from './dom.js'
 import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js'
 import { PRODUCTS, checkOrder } from './products.js'
+import { createGiftPreview } from './gift-preview.js'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -134,6 +135,42 @@ const pendingView = (order) => {
   ]
 }
 
+// ── Значки итога ──────────────────────────────────────────────────
+/** Галочка, которая прорисовывается в круге, и искры вокруг. У подарка — сам подарок с анимацией. */
+const successMark = (order) => {
+  if (order.summary?.gift) {
+    const slot = el('span', { class: 'status__gift', 'aria-hidden': 'true' })
+    createGiftPreview(slot).show(order.summary.gift)
+    return el('div', { class: 'status__mark status__mark--gift' }, [slot, sparks()])
+  }
+  const icon = svgEl('svg', { class: 'status__mark-icon', viewBox: '0 0 52 52', 'aria-hidden': 'true' }, [
+    svgEl('circle', { class: 'status__mark-ring', cx: '26', cy: '26', r: '24' }),
+    svgEl('path', { class: 'status__mark-check', d: 'M15 27l7.5 7.5L37.5 19' }),
+  ])
+  return el('div', { class: 'status__mark status__mark--done' }, [icon, sparks()])
+}
+
+const SPARK_COUNT = 10
+
+const sparks = () =>
+  el(
+    'span',
+    { class: 'status__sparks', 'aria-hidden': 'true' },
+    Array.from({ length: SPARK_COUNT }, (_, index) => {
+      const spark = el('i', {})
+      spark.style.setProperty('--angle', `${(360 / SPARK_COUNT) * index}deg`)
+      return spark
+    }),
+  )
+
+const failMark = () =>
+  el('div', { class: 'status__mark status__mark--fail' }, [
+    svgEl('svg', { class: 'status__mark-icon', viewBox: '0 0 52 52', 'aria-hidden': 'true' }, [
+      svgEl('circle', { class: 'status__mark-ring', cx: '26', cy: '26', r: '24' }),
+      svgEl('path', { class: 'status__mark-check', d: 'M18 18l16 16M34 18L18 34' }),
+    ]),
+  ])
+
 const VIEW = {
   [ORDER_STATE.PENDING]: pendingView,
   [ORDER_STATE.PAID]: () => [
@@ -148,18 +185,27 @@ const VIEW = {
   ],
   [ORDER_STATE.DONE]: (order, result) =>
     codeCard(order, result.codes ?? []) ?? [
-      el('div', { class: 'status__check', 'aria-hidden': 'true', text: '✓' }),
+      successMark(order),
       el('p', { class: 'status__title', text: PRODUCTS[order.productId].doneText }),
+      order.summary?.line && el('p', { class: 'status__text', text: order.summary.line }),
       ...(result.codes ?? []).flatMap((code) => [
         el('code', { class: 'status__code', text: code }),
         copyButton('Скопировать код', code),
       ]),
     ],
-  [ORDER_STATE.FAILED]: () => [
-    el('p', { class: 'status__title', text: 'Заказ не выполнен' }),
-    el('p', { class: 'status__text', text: 'Если деньги списались, напишите в поддержку — разберёмся.' }),
-    el('a', { class: 'btn btn--ghost', href: SUPPORT_URL, target: '_blank', rel: 'noopener', text: 'Поддержка' }),
-  ],
+  [ORDER_STATE.FAILED]: (_order, result) =>
+    result.reason === 'declined'
+      ? [
+          failMark(),
+          el('p', { class: 'status__title', text: 'Оплата не прошла' }),
+          el('p', { class: 'status__text', text: 'Деньги не списаны. Попробуйте ещё раз или выберите другой способ оплаты.' }),
+        ]
+      : [
+          failMark(),
+          el('p', { class: 'status__title', text: 'Заказ не выполнен' }),
+          el('p', { class: 'status__text', text: 'Если деньги списались, напишите в поддержку — вернём или довыдадим.' }),
+          el('a', { class: 'btn btn--ghost', href: SUPPORT_URL, target: '_blank', rel: 'noopener', text: 'Поддержка' }),
+        ],
 }
 
 /**
@@ -184,7 +230,7 @@ export const showStatus = (container, order, onClose) => {
 
   const render = (result) => {
     // Перерисовываем только при смене состояния: кнопки не теряют фокус и надпись «Скопировано».
-    const key = `${result.state}:${(result.codes ?? []).length}`
+    const key = `${result.state}:${result.reason ?? ''}:${(result.codes ?? []).length}`
     if (key === lastKey) return
     lastKey = key
     const isFinal = FINAL_STATES.includes(result.state)
@@ -223,6 +269,10 @@ export const showStatus = (container, order, onClose) => {
   }
 
   container.hidden = false
-  render({ state: ORDER_STATE.PENDING })
+  // В тестовом режиме исход уже выбран: сразу показываем «оплата получена» или отказ платежа.
+  const TEST_START = {
+    declined: { state: ORDER_STATE.FAILED, reason: 'declined' },
+  }
+  render(order.testOutcome ? (TEST_START[order.testOutcome] ?? { state: ORDER_STATE.PAID }) : { state: ORDER_STATE.PENDING })
   poll()
 }

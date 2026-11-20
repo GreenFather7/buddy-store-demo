@@ -79,6 +79,8 @@ export const buildTonLink = ({ address, amountTon, memo }) =>
 /** Статус Stars-бэкенда (/api/check_payment) → состояние заказа на сайте. */
 export const mapStarsStatus = (status) => {
   if (status === 'stars_sent') return ORDER_STATE.DONE
+  // боевой бэкенд звёзд таких статусов пока не отдаёт — их присылает тестовый режим
+  if (status === 'failed' || status === 'declined') return ORDER_STATE.FAILED
   if (status === 'paid') return ORDER_STATE.PAID
   return ORDER_STATE.PENDING
 }
@@ -100,6 +102,16 @@ export const mapCardsStatus = (status) => {
     default:
       return ORDER_STATE.PENDING
   }
+}
+
+const DECLINED_STATUSES = ['Declined', 'Expired', 'declined']
+const FAILED_STATUSES = ['Fail', 'failed']
+
+/** Почему заказ не выполнен: 'declined' — платёж не прошёл, 'failed' — оплачен, но не выдан. */
+export const failureReason = (status) => {
+  if (DECLINED_STATUSES.includes(status)) return 'declined'
+  if (FAILED_STATUSES.includes(status)) return 'failed'
+  return null
 }
 
 const NOT_FOUND_TEXT = {
