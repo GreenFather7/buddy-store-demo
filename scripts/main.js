@@ -201,11 +201,31 @@ const requestQuote = () => {
 }
 
 // ── Поля ──────────────────────────────────────────────────────────
+const SHAKE_KEYFRAMES = [
+  { transform: 'none' },
+  { transform: 'translateX(-0.3125rem)' },
+  { transform: 'translateX(0.3125rem)' },
+  { transform: 'translateX(-0.3125rem)' },
+  { transform: 'translateX(0.3125rem)' },
+  { transform: 'none' },
+]
+const SHAKE_MS = 420
+const prefersLessMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+
+/** Вздрагивание поля с ошибкой — заново при каждом нажатии «Оплатить». */
+const shake = (node) => {
+  if (!node || prefersLessMotion.matches) return
+  // ник и количество в одной строке — строка вздрагивает один раз, а не дважды внахлёст
+  node.getAnimations().forEach((animation) => animation.id === 'shake' && animation.cancel())
+  node.animate(SHAKE_KEYFRAMES, { id: 'shake', duration: SHAKE_MS, easing: 'ease-in-out' })
+}
+
 const markInvalid = (field, message) => {
   const control = controls[field.key]
   control.wrapper.classList.toggle('field--invalid', Boolean(message))
   control.hint.textContent = message ?? ''
   control.hint.hidden = !message
+  if (message) shake(control.wrapper.closest('.field__control') ?? control.wrapper.querySelector('.choices'))
 }
 
 const setValue = (field, raw, data) => {
