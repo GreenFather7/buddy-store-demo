@@ -98,11 +98,11 @@ const updateSubmit = () => {
   // Пока количество набирают вручную (стёрли «50», набирают «5», «50», «500»), цены нет.
   // В том же разделе прежняя сумма остаётся приглушённой, и новая прокручивается от неё.
   // При смене раздела сумма убирается.
-  const isTyping = !amount && hadAmount && amountEl.dataset.product === state.product.id
+  const isTyping = !amount && hadAmount && amountEl.dataset.forProduct === state.product.id
   amountEl.classList.toggle('pay-amount--stale', isTyping)
   if (isTyping) return
   setAmount(amountEl, amount, isAnimated && hadAmount)
-  amountEl.dataset.product = state.product.id
+  amountEl.dataset.forProduct = state.product.id
   amountEl.hidden = !amount
   // первая сумма не «крутится» с нуля, а мягко появляется рядом со словом
   if (amount && !hadAmount && isAnimated) {
@@ -451,6 +451,10 @@ const optionsField = (field) => {
         body.replaceChildren(el('div', { class: 'field__control' }, [select]))
       } else {
         body.replaceChildren(...options.map((option, index) => appear(optionButton(field, option, body), index)))
+        // тестовый режим: первый вариант (срок, подарок, страна, номинал) выбран сразу
+        if (CONFIG.demo && state.values[field.key] === undefined) {
+          body.querySelector('[role="radio"]:not(:disabled)')?.click()
+        }
       }
     } catch (error) {
       if (state.product !== snapshot.product) return
@@ -501,6 +505,22 @@ const buildFields = () => {
   state.product.fields.forEach((field) => controls[field.key].reload())
 }
 
+// Тестовый режим: ник, логин и количество уже заполнены — можно сразу жать «Оплатить»
+// (первые варианты в рядах выбирает optionsField).
+// Ник и логин — публичные тестовые, количество — первый шаблон раздела.
+const TEST_VALUES = { recipient: 'durov', account: 'test_login' }
+
+const prefillTestValues = () => {
+  state.product.fields.forEach((field) => {
+    const input = document.getElementById(`field-${field.key}`)
+    if (!(input instanceof HTMLInputElement)) return
+    const value = TEST_VALUES[field.key] ?? (field.presets?.length ? groupThousands(field.presets[0].value) : null)
+    if (value === null) return
+    input.value = value
+    setValue(field, value)
+  })
+}
+
 const centerCapsule = (button) => {
   const target = button.offsetLeft - (productsEl.clientWidth - button.offsetWidth) / 2
   productsEl.scrollTo({ left: target, behavior: 'smooth' })
@@ -525,6 +545,7 @@ const selectProduct = (productId, service) => {
   showError(null)
   buildFields()
   renderPay()
+  if (CONFIG.demo) prefillTestValues()
 }
 
 const brandCapsule = (service) => {
