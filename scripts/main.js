@@ -13,6 +13,7 @@ import { initTelegram } from './telegram.js'
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
 const TAP_SLOP_PX = 10
+const SKELETON_COUNT = 4
 /** Поле с username получателя в разделах Telegram. */
 const RECIPIENT_KEY = 'recipient'
 const DEFAULT_PRODUCT = 'stars'
@@ -272,6 +273,14 @@ const optionButton = (field, option, group) => {
   return button
 }
 
+const skeletonChoices = (field) =>
+  Array.from({ length: SKELETON_COUNT }, () =>
+    el('span', {
+      class: `choice${field.variant ? ` choice--${field.variant}` : ''} choice--skeleton`,
+      'aria-hidden': 'true',
+    }),
+  )
+
 const optionsField = (field) => {
   const body = el('div', {
     class: `choices${field.variant ? ` choices--${field.variant}` : ''}`,
@@ -281,13 +290,10 @@ const optionsField = (field) => {
 
   const reload = async () => {
     const deps = field.dependsOn ?? []
-    if (deps.some((key) => state.values[key] === undefined)) {
-      body.replaceChildren()
-      controls[field.key].wrapper.hidden = true
-      return
-    }
-    controls[field.key].wrapper.hidden = false
-    body.replaceChildren(el('span', { class: 'field__hint', text: 'Загружаем…' }))
+    // Пока вариантов нет (грузятся или ждут выбора выше), ряд занят заглушками того же размера:
+    // место под него не схлопывается, и кнопки оплаты ниже не прыгают.
+    body.replaceChildren(...skeletonChoices(field))
+    if (deps.some((key) => state.values[key] === undefined)) return
     const snapshot = state
     try {
       const options = await field.options(snapshot.values)
@@ -429,7 +435,9 @@ const submit = async (event) => {
   const missing = state.product.fields.filter((field) => state.values[field.key] === undefined)
   if (missing.length > 0) {
     missing.forEach((field) => {
-      if (!controls[field.key].wrapper.hidden) markInvalid(field, field.error ?? field.validate?.('') ?? 'Выберите вариант')
+      // подсказываем только то, что уже можно заполнить: скрытые поля и ждущие выбора выше — пропускаем
+      const isWaiting = (field.dependsOn ?? []).some((key) => state.values[key] === undefined)
+      if (!field.isHidden && !isWaiting) markInvalid(field, field.error ?? field.validate?.('') ?? 'Выберите вариант')
     })
     return
   }

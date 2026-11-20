@@ -853,3 +853,30 @@ select.field__input {
 .is-telegram .order__fields {
   gap: 0.625rem;
 }
+
+/* Заглушки на месте вариантов, пока те грузятся или ждут выбора выше: той же высоты и формы */
+.choice--skeleton {
+  box-shadow: none;
+  opacity: 0.55;
+  cursor: default;
+  pointer-events: none;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+/* у регионов ширина по тексту — заглушке задаём её явно */
+.choice--region.choice--skeleton {
+  min-width: 5.5rem;
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* сообщение вместо вариантов («нет в наличии», ошибка) занимает ту же высоту, что и ряд */
+.choices > .field__hint {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+}
