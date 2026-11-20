@@ -855,24 +855,16 @@ select.field__input {
   gap: 0.625rem;
 }
 
-/* Заглушки на месте вариантов, пока те грузятся или ждут выбора выше: той же высоты и формы */
+/* Заглушки невидимы: они только держат место под ряд, чтобы кнопки ниже не прыгали,
+   пока варианты грузятся или ждут выбора выше (номиналы — пока не выбрана страна). */
 .choice--skeleton {
-  box-shadow: none;
-  opacity: 0.55;
-  cursor: default;
+  visibility: hidden;
   pointer-events: none;
-  animation: skeleton-pulse 1.4s ease-in-out infinite;
 }
 
 /* у регионов ширина по тексту — заглушке задаём её явно */
 .choice--region.choice--skeleton {
   min-width: 5.5rem;
-}
-
-@keyframes skeleton-pulse {
-  50% {
-    opacity: 0.25;
-  }
 }
 
 /* сообщение вместо вариантов («нет в наличии», ошибка) занимает ту же высоту, что и ряд */
