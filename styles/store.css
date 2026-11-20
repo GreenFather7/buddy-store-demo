@@ -1581,3 +1581,41 @@ select.field__input {
     animation: none;
   }
 }
+
+/* ── Иконки в шаблонах и оплате — одного видимого размера ─────────
+   У файлов разные поля вокруг рисунка: стопки звёзд и Gram занимают ~60% кадра,
+   коробки Premium ~85%, знаки СБП и USDT — весь кадр. Поэтому размер рамки у каждого свой,
+   а сам рисунок везде выходит ~18px в высоту. */
+.choices,
+.pay__options {
+  --icon-visible: 1.125rem;
+}
+
+/* стопки звёзд и Gram (рисунок ~0.65 кадра по высоте) */
+.choice--preset .preset-icon {
+  width: calc(var(--icon-visible) / 0.65);
+  height: calc(var(--icon-visible) / 0.65);
+}
+
+/* коробки Premium (~0.83 кадра) */
+.preset-icon[src*="premium/"] {
+  width: calc(var(--icon-visible) / 0.83);
+  height: calc(var(--icon-visible) / 0.83);
+}
+
+/* знаки СБП и USDT заполняют кадр целиком */
+.pay__options .pay__icon {
+  width: var(--icon-visible);
+  height: var(--icon-visible);
+}
+
+/* кристалл Gram у оплаты TON (~0.8 кадра) */
+.pay__options .pay__icon[src*="gram-1"] {
+  width: calc(var(--icon-visible) / 0.8);
+  height: calc(var(--icon-visible) / 0.8);
+}
+
+/* подарки — эмодзи того же видимого размера */
+.choices > .choice--media {
+  font-size: var(--icon-visible);
+}
