@@ -517,10 +517,10 @@ select.field__input {
   cursor: not-allowed;
 }
 
-/* Подарки и регионы: один ряд, листается влево-вправо, как строка разделов.
-   Цена подарка показывается в способах оплаты после выбора. */
+/* Подарки, регионы и номиналы: один ряд, листается влево-вправо, как строка разделов. */
 .choices--media,
-.choices--region {
+.choices--region,
+.choices--price {
   flex-wrap: nowrap;
   margin-inline: calc(var(--space-gutter) * -1);
   padding: 2px var(--space-gutter);
@@ -539,8 +539,19 @@ select.field__input {
 }
 
 .choices--media::-webkit-scrollbar,
-.choices--region::-webkit-scrollbar {
+.choices--region::-webkit-scrollbar,
+.choices--price::-webkit-scrollbar {
   display: none;
+}
+
+/* Номинал и его цена — в одну строку: «10 $  990 ₽» */
+.choice.choice--price {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4375rem;
+  white-space: nowrap;
+  scroll-snap-align: start;
 }
 
 .choice--media {

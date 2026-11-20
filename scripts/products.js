@@ -302,6 +302,7 @@ const cards = {
       key: 'voucher',
       type: 'choice',
       label: 'Номинал',
+      variant: 'price',
       dependsOn: ['service', 'region'],
       options: async ({ service, region }) => {
         const { vouchers } = await request('cards', '/api/vouchers/list', {
