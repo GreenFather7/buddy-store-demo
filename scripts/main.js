@@ -11,8 +11,7 @@ import { initTelegram } from './telegram.js'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
-const TYPING_CLASS = 'is-typing'
-const TYPING_LEAVE_MS = 300
+const TAP_SLOP_PX = 10
 /** Поле с username получателя в разделах Telegram. */
 const RECIPIENT_KEY = 'recipient'
 const DEFAULT_PRODUCT = 'stars'
@@ -455,18 +454,26 @@ const submit = async (event) => {
   renderPay()
 }
 
-// На телефоне клавиатура закрывает пол-экрана: пока идёт ввод, шапка убирается (стили — .is-typing).
-// Класс снимается с задержкой, чтобы нажатие на кнопку под полем не промахнулось из-за сдвига.
-const watchTyping = () => {
-  let leaveTimer = 0
-  form.addEventListener('focusin', (event) => {
-    if (!event.target.matches('input')) return
-    clearTimeout(leaveTimer)
-    document.documentElement.classList.add(TYPING_CLASS)
-    window.scrollTo(0, 0)
-  })
-  form.addEventListener('focusout', () => {
-    leaveTimer = setTimeout(() => document.documentElement.classList.remove(TYPING_CLASS), TYPING_LEAVE_MS)
+// На телефоне браузер при нажатии на поле сам прокручивает страницу к нему — форма «улетает».
+// Поля здесь и так видны над клавиатурой, поэтому фокус ставим сами, без прокрутки.
+const keepFormInPlace = () => {
+  let touchStart = null
+  form.addEventListener(
+    'touchstart',
+    (event) => {
+      const touch = event.changedTouches[0]
+      touchStart = { x: touch.clientX, y: touch.clientY }
+    },
+    { passive: true },
+  )
+  form.addEventListener('touchend', (event) => {
+    const input = event.target.closest('input')
+    if (!input || document.activeElement === input || !touchStart) return
+    const touch = event.changedTouches[0]
+    // палец сдвинулся — это прокрутка, а не нажатие
+    if (Math.hypot(touch.clientX - touchStart.x, touch.clientY - touchStart.y) > TAP_SLOP_PX) return
+    event.preventDefault()
+    input.focus({ preventScroll: true })
   })
 }
 
@@ -478,7 +485,7 @@ const init = () => {
     }
   })
   form.addEventListener('submit', submit)
-  watchTyping()
+  keepFormInPlace()
 
   // Платёжка возвращает с ?shop=…&order=… — сам заказ лежит в хранилище, адрес чистим.
   const params = new URLSearchParams(window.location.search)
