@@ -280,8 +280,8 @@ const inputField = (field) => {
       if (input.value && state.values[field.key] === undefined) markInvalid(field, fieldMessage(field, input.value))
     },
   })
-  const presets = (field.presets ?? []).map((preset) =>
-    el(
+  const presets = (field.presets ?? []).map((preset, index) =>
+    appear(el(
       'button',
       {
         class: 'choice choice--preset',
@@ -295,7 +295,7 @@ const inputField = (field) => {
         preset.icon && el('img', { class: 'preset-icon', src: preset.icon, alt: '', width: '24', height: '24' }),
         el('span', { text: groupThousands(preset.value) }),
       ],
-    ),
+    ), index),
   )
   return {
     cell: el('span', { class: `field__cell${isNumber ? ' field__cell--amount' : ''}` }, [
@@ -332,6 +332,13 @@ const optionButton = (field, option, group) => {
     ],
   )
   return button
+}
+
+/** Порядковый номер капсулы для лёгкого появления «волной» слева направо (стили — .choice--appear). */
+const appear = (node, index) => {
+  node.classList.add('choice--appear')
+  node.style.setProperty('--appear-index', String(index))
+  return node
 }
 
 const skeletonChoices = (field) =>
@@ -377,7 +384,7 @@ const optionsField = (field) => {
         )
         body.replaceChildren(el('div', { class: 'field__control' }, [select]))
       } else {
-        body.replaceChildren(...options.map((option) => optionButton(field, option, body)))
+        body.replaceChildren(...options.map((option, index) => appear(optionButton(field, option, body), index)))
       }
     } catch (error) {
       if (state.product !== snapshot.product) return
