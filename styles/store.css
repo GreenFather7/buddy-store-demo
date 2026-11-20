@@ -883,13 +883,14 @@ select.field__input {
 }
 
 /* Выбранный подарок в правой части строки ввода */
+/* размер — как у подарка в ячейке ряда ниже, чтобы выбранный просто «переехал» в строку */
 .gift-preview {
   flex: none;
   display: grid;
   place-items: center;
-  width: 3.25rem;
-  height: 3.25rem;
-  margin-block: 0.25rem;
+  width: 2.375rem;
+  height: 2.375rem;
+  margin-right: 0.125rem;
 }
 
 .gift-preview:empty {
@@ -905,7 +906,7 @@ select.field__input {
 }
 
 .gift-preview__emoji {
-  font-size: 2rem;
+  font-size: 1.375rem;
   line-height: 1;
 }
 

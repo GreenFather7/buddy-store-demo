@@ -9,7 +9,7 @@ import { mixHex } from './hero-math.js'
 import { avatarUrl, describeError, groupThousands } from './lib.js'
 import { PRODUCTS, loadCardServices, normalizeValue } from './products.js'
 import { loadOrder, saveOrder, showStatus } from './status.js'
-import { initTelegram } from './telegram.js'
+import { hapticError, initTelegram } from './telegram.js'
 import { askTestPayment, mountBalance } from './testpay.js'
 import { settleDemoOrder } from './mock.js'
 
@@ -220,12 +220,23 @@ const shake = (node) => {
   node.animate(SHAKE_KEYFRAMES, { id: 'shake', duration: SHAKE_MS, easing: 'ease-in-out' })
 }
 
+/** Вздрагивание с вибрацией. Вибрация — одна на нажатие, даже если неверных полей несколько. */
+let hapticFrame = 0
+const shakeWithHaptic = (node) => {
+  shake(node)
+  if (hapticFrame) return
+  hapticError()
+  hapticFrame = requestAnimationFrame(() => {
+    hapticFrame = 0
+  })
+}
+
 const markInvalid = (field, message) => {
   const control = controls[field.key]
   control.wrapper.classList.toggle('field--invalid', Boolean(message))
   control.hint.textContent = message ?? ''
   control.hint.hidden = !message
-  if (message) shake(control.wrapper.closest('.field__control') ?? control.wrapper.querySelector('.choices'))
+  if (message) shakeWithHaptic(control.wrapper.closest('.field__control') ?? control.wrapper.querySelector('.choices'))
 }
 
 const setValue = (field, raw, data) => {

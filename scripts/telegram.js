@@ -37,3 +37,20 @@ export const initTelegram = () => {
   script.addEventListener('error', () => console.error('Не удалось загрузить скрипт Telegram'))
   document.head.append(script)
 }
+
+const HAPTIC_MIN_VERSION = '6.1'
+/** Короткая вибрация для обычного браузера на Android: два коротких толчка, как «ошибка». */
+const ERROR_VIBRATION_MS = [30, 40, 30]
+
+/**
+ * Вибрация «ошибка»: в Telegram — через его тактильный отклик (работает и на iPhone),
+ * в браузере — через navigator.vibrate, где он есть (Android). На iPhone в Safari вибрации нет.
+ */
+export const hapticError = () => {
+  const app = window.Telegram?.WebApp
+  if (app?.HapticFeedback && app.isVersionAtLeast?.(HAPTIC_MIN_VERSION)) {
+    app.HapticFeedback.notificationOccurred('error')
+    return
+  }
+  navigator.vibrate?.(ERROR_VIBRATION_MS)
+}
