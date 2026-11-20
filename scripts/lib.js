@@ -25,6 +25,11 @@ export const normalizeUsername = (raw) => String(raw ?? '').trim().replace(/^@+/
 
 export const isValidUsername = (raw) => USERNAME_PATTERN.test(normalizeUsername(raw))
 
+const TELEGRAM_LAUNCH_PATTERN = /(^#|&)tgWebApp(Data|Version|Platform)=/
+
+/** Telegram открывает мини-приложение с параметрами запуска в хэше адреса. */
+export const isTelegramLaunch = (hash) => TELEGRAM_LAUNCH_PATTERN.test(String(hash ?? ''))
+
 const TELEGRAM_USERPIC_BASE = 'https://t.me/i/userpic/320'
 
 /** Адрес публичного аватара Telegram по username или null, если username некорректен. */

@@ -108,6 +108,17 @@ a {
     border-color var(--duration-normal);
 }
 
+/* Внутри Telegram: шапку сайта заменяют кнопки самого Telegram, а в полноэкранном режиме
+   содержимое опускается ниже выреза экрана и этих кнопок. */
+.is-telegram .site-header {
+  display: none;
+}
+
+.is-telegram body {
+  padding-top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+  padding-bottom: var(--tg-safe-area-inset-bottom, 0px);
+}
+
 .site-header.is-scrolled {
   background: rgb(21 21 23 / 0.72);
   border-bottom-color: var(--color-line);

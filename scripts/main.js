@@ -6,6 +6,7 @@ import { createHero, heroGlyph } from './hero.js'
 import { avatarUrl, describeError } from './lib.js'
 import { PRODUCTS, normalizeValue } from './products.js'
 import { loadOrder, saveOrder, showStatus } from './status.js'
+import { initTelegram } from './telegram.js'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -401,4 +402,5 @@ const init = () => {
   if (pendingOrder) openStatus(pendingOrder)
 }
 
+initTelegram()
 init()
