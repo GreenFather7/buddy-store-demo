@@ -934,3 +934,21 @@ select.field__input {
   height: var(--row, 2.75rem);
   min-height: 0;
 }
+
+/* У гифт-карт страны стоят на месте строки ввода и той же высоты, номиналы — на месте шаблонов.
+   При переходе со Steam на PlayStation и обратно ряды совпадают по высоте и положению. */
+.choices--region > .choice {
+  height: var(--input-row, 3.75rem);
+  padding-inline: 0.75rem 1.125rem;
+  gap: 0.625rem;
+  font-size: 1.0625rem;
+}
+
+.choices--region .flag {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.choices--region > .choice--skeleton {
+  min-width: 7.5rem;
+}
