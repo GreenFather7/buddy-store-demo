@@ -80,19 +80,14 @@
   gap: 1.25rem;
   width: 100%;
   max-width: 30rem;
-  padding: clamp(1rem, 0.6rem + 2vw, 1.5rem);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  box-shadow:
-    inset 0 0 0 1px var(--color-line),
-    0 40px 80px -40px rgb(0 0 0 / 0.8);
+  /* без подложки: форма лежит прямо на фоне страницы, значки шапки пролетают за ней */
 }
 
 /* ── Выбор товара ──────────────────────────────────── */
 /* Разделы — одна строка маленьких капсул, листается влево-вправо.
    Строка выходит к краям карточки, справа и слева капсулы плавно гаснут. */
 .products {
-  --products-bleed: clamp(1rem, 0.6rem + 2vw, 1.5rem);
+  --products-bleed: var(--space-gutter);
   display: flex;
   gap: 0.5rem;
   /* без этого строка капсул растянула бы карточку вместо прокрутки */
@@ -131,7 +126,7 @@
   border: 0;
   border-radius: 999px;
   background: var(--color-surface-2);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
+  box-shadow: inset 0 0 0 1px var(--color-line);
   color: var(--color-text-soft);
   font: inherit;
   font-size: var(--text-sm);
@@ -218,7 +213,7 @@
   min-height: 3.25rem;
   border-radius: var(--radius-sm);
   background: var(--color-surface-2);
-  box-shadow: inset 0 0 0 1px transparent;
+  box-shadow: inset 0 0 0 1px var(--color-line);
   transition: box-shadow var(--duration-fast);
 }
 
@@ -323,7 +318,8 @@ select.field__input {
   align-items: center;
   justify-content: flex-start;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 0.875rem 0.5rem 0.625rem;
+  border-radius: var(--radius-pill);
   text-align: left;
 }
 
@@ -359,6 +355,7 @@ select.field__input {
   border: 0;
   border-radius: var(--radius-sm);
   background: var(--color-surface-2);
+  box-shadow: inset 0 0 0 1px var(--color-line);
   color: var(--color-text-soft);
   font: inherit;
   font-size: var(--text-sm);
