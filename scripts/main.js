@@ -560,6 +560,8 @@ const selectProduct = (productId, service) => {
   })
   // Строка разделов листается: выбранная капсула должна быть видна целиком.
   if (active) centerCapsule(active)
+  // цвет раздела — для тихой подсветки выбранных вариантов в форме (стили — --section-color)
+  if (active) root.style.setProperty('--section-color', getComputedStyle(active).getPropertyValue('--product-color').trim())
   showError(null)
   if (isSameForm) {
     // Гифт-карты: другой сервис — та же форма. Ряды не пересоздаются, а перезагружаются на месте:
