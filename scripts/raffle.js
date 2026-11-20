@@ -1,0 +1,199 @@
+// Ежедневный розыгрыш NFT-подарка, как в боте звёзд: 1 билет за каждые 50 звёзд,
+// розыгрыш в 20:00, участвуют от 3 билетов, приз приходит в Telegram.
+// Пока у бэкенда нет метода для сайта, данные розыгрыша есть только в тестовом режиме:
+// приз — мишка из анимаций мини-приложения, билеты копятся за тестовые покупки звёзд.
+
+import { el } from './dom.js'
+import { createGiftPreview } from './gift-preview.js'
+
+const RAFFLE_HOUR = 20
+const STARS_PER_TICKET = 50
+const MIN_TICKETS = 3
+const TICKETS_KEY = 'buddy.test.tickets'
+const CLOCK_TICK_MS = 1000
+const MS_PER_SECOND = 1000
+const SECONDS_PER_MINUTE = 60
+const MINUTES_PER_HOUR = 60
+
+/** Приз в тестовом режиме. Настоящий придёт из состояния розыгрыша на бэкенде (raffle_state). */
+const DEMO_PRIZE = { giftId: 21, emoji: '🧸', title: 'Плюшевый мишка', number: '#1042' }
+/** Сколько билетов у всех участников — чтобы показать шанс. В боте это сумма raffle_tickets за день. */
+const DEMO_TOTAL_TICKETS = 240
+
+/** До какого момента идёт текущий розыгрыш (ближайшие 20:00). */
+const nextDraw = (now = new Date()) => {
+  const draw = new Date(now)
+  draw.setHours(RAFFLE_HOUR, 0, 0, 0)
+  if (now >= draw) draw.setDate(draw.getDate() + 1)
+  return draw
+}
+
+const pad = (value) => String(value).padStart(2, '0')
+
+const countdown = () => {
+  const totalSeconds = Math.max(0, Math.floor((nextDraw() - Date.now()) / MS_PER_SECOND))
+  const hours = Math.floor(totalSeconds / (SECONDS_PER_MINUTE * MINUTES_PER_HOUR))
+  const minutes = Math.floor(totalSeconds / SECONDS_PER_MINUTE) % MINUTES_PER_HOUR
+  const seconds = totalSeconds % SECONDS_PER_MINUTE
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+}
+
+/** «1 билет», «3 билета», «5 билетов». */
+export const ticketsWord = (count) => {
+  const tens = count % 100
+  const units = count % 10
+  if (tens >= 11 && tens <= 19) return 'билетов'
+  if (units === 1) return 'билет'
+  if (units >= 2 && units <= 4) return 'билета'
+  return 'билетов'
+}
+
+/** Билеты привязаны к дню розыгрыша: после 20:00 начинается новый день и счёт с нуля. */
+const drawKey = () => nextDraw().toDateString()
+
+let memoryTickets = { day: drawKey(), count: 0 }
+
+const readTickets = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(TICKETS_KEY) ?? 'null')
+    memoryTickets = stored ?? memoryTickets
+  } catch {
+    // без хранилища считаем в памяти
+  }
+  return memoryTickets.day === drawKey() ? memoryTickets.count : 0
+}
+
+const writeTickets = (count) => {
+  memoryTickets = { day: drawKey(), count }
+  try {
+    localStorage.setItem(TICKETS_KEY, JSON.stringify(memoryTickets))
+  } catch {
+    // без хранилища билеты живут до перезагрузки
+  }
+  document.dispatchEvent(new CustomEvent('rafflechange'))
+}
+
+/** Сколько билетов даст покупка звёзд. */
+export const ticketsFor = (stars) => Math.floor(Number(stars) / STARS_PER_TICKET) || 0
+
+/** Начисляет билеты за купленные звёзды; возвращает, сколько добавилось. */
+export const addTicketsForStars = (stars) => {
+  const added = ticketsFor(stars)
+  if (added > 0) writeTickets(readTickets() + added)
+  return added
+}
+
+const ticketsLine = (count) =>
+  count >= MIN_TICKETS
+    ? `Вы участвуете · ${count} ${ticketsWord(count)}`
+    : `${count} из ${MIN_TICKETS} ${ticketsWord(MIN_TICKETS)} для участия`
+
+const chance = (count) => {
+  if (count < MIN_TICKETS) return null
+  const percent = (count / (DEMO_TOTAL_TICKETS + count)) * 100
+  return percent < 1 ? 'меньше 1%' : `${Math.round(percent)}%`
+}
+
+/**
+ * Окно розыгрыша: приз с анимацией, таймер, ваши билеты и правила.
+ * @param {() => void} onBuyStars перейти к покупке звёзд
+ */
+const openSheet = (onBuyStars) => {
+  const tickets = readTickets()
+  const clock = el('span', { class: 'raffle-sheet__clock', text: countdown() })
+  const timer = setInterval(() => {
+    clock.textContent = countdown()
+  }, CLOCK_TICK_MS)
+
+  const prize = el('span', { class: 'raffle-sheet__prize', 'aria-hidden': 'true' })
+  createGiftPreview(prize).show({ id: DEMO_PRIZE.giftId, emoji: DEMO_PRIZE.emoji })
+
+  const progress = el('span', { class: 'raffle-sheet__progress' }, [el('i', {})])
+  progress.firstChild.style.setProperty('--progress', String(Math.min(tickets / MIN_TICKETS, 1)))
+
+  const close = () => {
+    clearInterval(timer)
+    document.removeEventListener('keydown', onKey)
+    sheet.classList.add('test-sheet--closing')
+    sheet.addEventListener('animationend', () => sheet.remove(), { once: true })
+  }
+  const onKey = (event) => {
+    if (event.key === 'Escape') close()
+  }
+  const chanceText = chance(tickets)
+
+  const sheet = el('div', { class: 'test-sheet raffle-sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Розыгрыш NFT' }, [
+    el('div', { class: 'test-sheet__backdrop', onClick: close }),
+    el('div', { class: 'test-sheet__panel raffle-sheet__panel' }, [
+      el('p', { class: 'test-sheet__badge raffle-sheet__badge', text: 'Розыгрыш NFT' }),
+      el('div', { class: 'raffle-sheet__stage' }, [el('span', { class: 'raffle-sheet__glow' }), prize]),
+      el('p', { class: 'raffle-sheet__title' }, [
+        DEMO_PRIZE.title,
+        el('span', { class: 'raffle-sheet__number', text: ` ${DEMO_PRIZE.number}` }),
+      ]),
+      el('p', { class: 'raffle-sheet__when' }, [el('span', { text: 'Розыгрыш через ' }), clock]),
+      el('div', { class: 'raffle-sheet__tickets' }, [
+        el('span', { class: 'raffle-sheet__ticket-icon', text: '🎟', 'aria-hidden': 'true' }),
+        el('div', { class: 'raffle-sheet__ticket-text' }, [
+          el('strong', { text: ticketsLine(tickets) }),
+          el('span', {
+            text: chanceText ? `Шанс выиграть — ${chanceText}` : 'Больше билетов — выше шанс',
+          }),
+          progress,
+        ]),
+      ]),
+      el('ul', { class: 'raffle-sheet__rules' }, [
+        el('li', { text: '1 билет за каждые 50 звёзд' }),
+        el('li', { text: `Розыгрыш каждый день в ${RAFFLE_HOUR}:00` }),
+        el('li', { text: `Участвуют от ${MIN_TICKETS} билетов` }),
+        el('li', { text: 'Подарок придёт победителю в Telegram' }),
+      ]),
+      el('button', {
+        class: 'btn btn--gold test-sheet__option raffle-sheet__buy',
+        type: 'button',
+        text: 'Купить звёзды',
+        onClick: () => {
+          close()
+          onBuyStars()
+        },
+      }),
+      el('button', { class: 'test-sheet__cancel', type: 'button', text: 'Закрыть', onClick: close }),
+    ]),
+  ])
+  document.addEventListener('keydown', onKey)
+  document.body.append(sheet)
+}
+
+/**
+ * Карточка розыгрыша под кнопкой оплаты: приз, таймер и ваши билеты; нажатие открывает окно.
+ * @param {HTMLElement} anchor после какого элемента поставить карточку
+ * @param {() => void} onBuyStars
+ */
+export const mountRaffle = (anchor, onBuyStars) => {
+  const prize = el('span', { class: 'raffle-card__prize', 'aria-hidden': 'true' })
+  createGiftPreview(prize).show({ id: DEMO_PRIZE.giftId, emoji: DEMO_PRIZE.emoji })
+  const clock = el('span', { class: 'raffle-card__clock' })
+  const tickets = el('span', { class: 'raffle-card__tickets' })
+  const card = el(
+    'button',
+    { class: 'raffle-card', type: 'button', onClick: () => openSheet(onBuyStars) },
+    [
+      prize,
+      el('span', { class: 'raffle-card__text' }, [
+        el('strong', { text: 'Розыгрыш NFT' }),
+        el('span', { class: 'raffle-card__meta' }, [clock, tickets]),
+      ]),
+      el('span', { class: 'raffle-card__arrow', text: '›', 'aria-hidden': 'true' }),
+    ],
+  )
+  const update = () => {
+    clock.textContent = `через ${countdown()}`
+    const count = readTickets()
+    tickets.textContent = `🎟 ${count}`
+    card.classList.toggle('raffle-card--in', count >= MIN_TICKETS)
+  }
+  update()
+  setInterval(update, CLOCK_TICK_MS)
+  document.addEventListener('rafflechange', update)
+  anchor.after(card)
+}

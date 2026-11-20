@@ -1359,3 +1359,222 @@ select.field__input {
 .pay-amount {
   transition: opacity 200ms;
 }
+
+/* ── Розыгрыш NFT ──────────────────────────────────────────
+   Карточка под кнопкой оплаты: приз, таймер, билеты. Нажатие открывает окно с подробностями. */
+.raffle-card {
+  --raffle: #b46cff;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem 0.875rem 0.5rem 0.5rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background:
+    radial-gradient(120% 160% at 0% 50%, color-mix(in srgb, var(--raffle) 22%, transparent), transparent 60%),
+    var(--color-surface-2);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--raffle) 35%, transparent);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform var(--duration-normal) var(--ease-out-expo);
+}
+
+.raffle-card:active {
+  transform: scale(0.98);
+}
+
+.raffle-card--in {
+  --raffle: var(--color-gold);
+}
+
+.raffle-card__prize {
+  flex: none;
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--raffle) 40%, transparent), transparent);
+}
+
+.raffle-card__prize .gift-preview__image,
+.raffle-card__prize .gift-preview__stage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.raffle-card__text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 0.0625rem;
+  font-size: var(--text-sm);
+}
+
+.raffle-card__meta {
+  display: flex;
+  gap: 0.75rem;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.raffle-card__arrow {
+  color: var(--color-text-muted);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+/* окно розыгрыша — на основе окна тестовой оплаты */
+.raffle-sheet__panel {
+  --raffle: var(--color-gold);
+  gap: 0.625rem;
+}
+
+.raffle-sheet__badge {
+  background: rgb(180 108 255 / 0.16);
+  color: #c9a3ff;
+}
+
+.raffle-sheet__stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 8.5rem;
+}
+
+.raffle-sheet__glow {
+  position: absolute;
+  width: 9rem;
+  height: 9rem;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(180 108 255 / 0.45), transparent);
+  animation: raffle-glow 2.6s ease-in-out infinite;
+}
+
+.raffle-sheet__prize {
+  position: relative;
+  display: grid;
+  width: 8rem;
+  height: 8rem;
+}
+
+.raffle-sheet__prize .gift-preview__image,
+.raffle-sheet__prize .gift-preview__stage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.raffle-sheet__prize .gift-preview__emoji {
+  font-size: 5rem;
+}
+
+.raffle-sheet__title {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.raffle-sheet__number {
+  color: var(--color-text-muted);
+}
+
+.raffle-sheet__when {
+  color: var(--color-text-soft);
+  font-size: var(--text-sm);
+}
+
+.raffle-sheet__clock {
+  color: var(--color-text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.raffle-sheet__tickets {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: 1.25rem;
+  background: var(--color-surface-2);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  text-align: left;
+}
+
+.raffle-sheet__ticket-icon {
+  font-size: 1.75rem;
+}
+
+.raffle-sheet__ticket-text {
+  display: grid;
+  flex: 1;
+  gap: 0.25rem;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.raffle-sheet__ticket-text strong {
+  color: var(--color-text);
+  font-size: 0.9375rem;
+}
+
+.raffle-sheet__progress {
+  height: 0.3125rem;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 0.08);
+}
+
+.raffle-sheet__progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ffcf70, #ff9a00);
+  transform: scaleX(var(--progress, 0));
+  transform-origin: left;
+  transition: transform 600ms var(--ease-out-expo);
+}
+
+.raffle-sheet__rules {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.25rem 0;
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  list-style: none;
+}
+
+.raffle-sheet__rules li::before {
+  content: "· ";
+}
+
+.status__raffle {
+  padding: 0.375rem 0.875rem;
+  border-radius: var(--radius-pill);
+  background: rgb(255 178 36 / 0.12);
+  color: var(--color-gold);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  animation: choice-appear 500ms 900ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes raffle-glow {
+  50% {
+    opacity: 0.55;
+    transform: scale(0.88);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .raffle-sheet__glow,
+  .status__raffle {
+    animation: none;
+  }
+}

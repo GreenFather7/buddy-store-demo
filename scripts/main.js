@@ -12,6 +12,7 @@ import { loadOrder, saveOrder, showStatus } from './status.js'
 import { hapticError, initTelegram } from './telegram.js'
 import { setAmount } from './odometer.js'
 import { askTestPayment, mountBalance } from './testpay.js'
+import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js'
 import { settleDemoOrder } from './mock.js'
 
 const QUOTE_DEBOUNCE_MS = 400
@@ -607,7 +608,10 @@ const payInTestMode = async (order) => {
   renderPay()
   if (!outcome) return
   settleDemoOrder(order.ref.orderId, outcome)
-  openStatus({ ...order, testOutcome: outcome })
+  // билеты розыгрыша — только за выданные звёзды, как в боте
+  const added = outcome === 'success' && order.productId === STARS_PRODUCT ? addTicketsForStars(state.values.amount) : 0
+  const raffleNote = added > 0 ? `+${added} ${ticketsWord(added)} в розыгрыш NFT` : null
+  openStatus({ ...order, testOutcome: outcome, raffleNote })
 }
 
 const submit = async (event) => {
@@ -682,7 +686,10 @@ const init = () => {
     }
   })
   form.addEventListener('submit', submit)
-  if (CONFIG.demo) mountBalance(submitEl)
+  if (CONFIG.demo) {
+    mountBalance(submitEl)
+    mountRaffle(submitEl, () => selectProduct(STARS_PRODUCT))
+  }
   keepFormInPlace()
 
   // Платёжка возвращает с ?shop=…&order=… — сам заказ лежит в хранилище, адрес чистим.

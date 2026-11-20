@@ -188,6 +188,7 @@ const VIEW = {
       successMark(order),
       el('p', { class: 'status__title', text: PRODUCTS[order.productId].doneText }),
       order.summary?.line && el('p', { class: 'status__text', text: order.summary.line }),
+      order.raffleNote && el('p', { class: 'status__raffle', text: `🎟 ${order.raffleNote}` }),
       ...(result.codes ?? []).flatMap((code) => [
         el('code', { class: 'status__code', text: code }),
         copyButton('Скопировать код', code),
