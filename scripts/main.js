@@ -137,8 +137,8 @@ const renderPay = () => {
         },
         [
           el('img', { class: 'pay__icon', src: METHOD_ICON[method], alt: '', width: '24', height: '24' }),
+          // цена — только на кнопке «Оплатить»: она показывает сумму для выбранного способа
           el('span', { text: METHOD_LABEL[method] }),
-          el('span', { class: 'pay__price', text: state.quote?.[method] ?? '—' }),
         ],
       ),
     ),
