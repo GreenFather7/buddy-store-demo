@@ -193,14 +193,17 @@ const setValue = (field, raw, data) => {
 
 const fieldMessage = (field, raw) => (field.validate ? field.validate(raw) : (field.error ?? 'Выберите вариант'))
 
+/** Ячейка большой строки ввода и кнопки-шаблоны под ней. Подписи нет — её заменяет подсказка в поле. */
 const inputField = (field) => {
+  const isNumber = field.type === 'number'
   const input = el('input', {
-    class: 'field__input',
+    class: `field__input${isNumber ? ' field__input--amount' : ''}`,
     id: `field-${field.key}`,
     name: field.key,
     type: 'text',
-    inputmode: field.type === 'number' ? 'numeric' : undefined,
+    inputmode: isNumber ? 'numeric' : undefined,
     placeholder: field.placeholder,
+    'aria-label': field.label,
     autocomplete: field.autocomplete ?? 'off',
     autocapitalize: 'off',
     spellcheck: 'false',
@@ -230,14 +233,15 @@ const inputField = (field) => {
       ],
     ),
   )
-  return [
-    el('div', { class: 'field__control' }, [
+  return {
+    cell: el('span', { class: `field__cell${isNumber ? ' field__cell--amount' : ''}` }, [
       field.prefix && el('span', { class: 'field__prefix', text: field.prefix }),
       input,
       field.suffix && el('span', { class: 'field__suffix', text: field.suffix }),
+      field.unitIcon && el('img', { class: 'field__unit', src: field.unitIcon, alt: '', width: '28', height: '28' }),
     ]),
-    presets.length > 0 && el('div', { class: 'choices' }, presets),
-  ]
+    presets: presets.length > 0 ? el('div', { class: 'choices' }, presets) : null,
+  }
 }
 
 const optionButton = (field, option, group) => {
@@ -314,19 +318,32 @@ const optionsField = (field) => {
   return { nodes: [body], reload }
 }
 
+// Поля ввода, идущие подряд, собираются в одну большую строку (получатель слева, количество справа);
+// шаблоны и ошибки встают сразу под ней. Видимых подписей нет — они остаются для экранных дикторов.
 const buildFields = () => {
   controls = {}
-  const nodes = state.product.fields.map((field) => {
-    const isInput = field.type === 'text' || field.type === 'number'
-    const isStatic = isInput || field.isHidden
-    const built = isStatic ? { nodes: isInput ? inputField(field) : [], reload: () => {} } : optionsField(field)
+  const nodes = []
+  let combo = null
+  state.product.fields.forEach((field) => {
     const hint = el('span', { class: 'field__hint', hidden: true })
-    const label = isInput
-      ? el('label', { class: 'field__label', for: `field-${field.key}`, text: field.label })
-      : el('span', { class: 'field__label', text: field.label })
+    if (field.type === 'text' || field.type === 'number') {
+      const { cell, presets } = inputField(field)
+      if (!combo) {
+        const control = el('div', { class: 'field__control' })
+        combo = { control, wrapper: el('div', { class: 'field field--combo' }, [control]) }
+        nodes.push(combo.wrapper)
+      }
+      combo.control.append(cell)
+      combo.wrapper.append(...[presets, hint].filter(Boolean))
+      controls[field.key] = { wrapper: cell, hint, reload: () => {} }
+      return
+    }
+    combo = null
+    const built = field.isHidden ? { nodes: [], reload: () => {} } : optionsField(field)
+    const label = el('span', { class: 'sr-only', text: field.label })
     const wrapper = el('div', { class: 'field', hidden: field.isHidden }, [label, ...built.nodes, hint])
     controls[field.key] = { wrapper, hint, reload: built.reload }
-    return wrapper
+    nodes.push(wrapper)
   })
   fieldsEl.replaceChildren(...nodes)
   state.product.fields.forEach((field) => controls[field.key].reload())
