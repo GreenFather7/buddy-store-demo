@@ -194,7 +194,7 @@
 }
 
 .product[aria-checked="true"] .product__icon {
-  animation: product-pop 560ms var(--ease-out-expo);
+  animation: product-pop 1100ms cubic-bezier(0.37, 0, 0.63, 1);
 }
 
 .product::after {
@@ -212,20 +212,21 @@
 }
 
 .product[aria-checked="true"]::after {
-  animation: product-ring 620ms ease-out;
+  animation: product-ring 1200ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
+/* Мягкое «дыхание»: иконка плавно увеличивается с лёгким наклоном и так же плавно возвращается */
 @keyframes product-pop {
   0% {
-    transform: scale(0.6) rotate(-18deg);
+    transform: none;
   }
 
-  45% {
-    transform: scale(1.45) rotate(10deg);
+  35% {
+    transform: scale(1.24) rotate(-7deg);
   }
 
-  70% {
-    transform: scale(0.92) rotate(-4deg);
+  65% {
+    transform: scale(1.1) rotate(4deg);
   }
 
   100% {
@@ -235,8 +236,12 @@
 
 @keyframes product-ring {
   0% {
-    opacity: 0.7;
-    transform: scale(0.5);
+    opacity: 0;
+    transform: scale(0.7);
+  }
+
+  25% {
+    opacity: 0.45;
   }
 
   100% {
