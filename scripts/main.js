@@ -16,6 +16,8 @@ const TAP_SLOP_PX = 10
 const RECIPIENT_KEY = 'recipient'
 const DEFAULT_PRODUCT = 'stars'
 const METHOD_LABEL = { sbp: 'СБП', ton: 'TON', usdt: 'USDT' }
+/** Значки способов оплаты — те же, что в мини-приложении звёзд: СБП, кристалл Gram и USDT. */
+const METHOD_ICON = { sbp: 'assets/pay/sbp.svg', ton: 'assets/presets/gram-1.svg', usdt: 'assets/pay/usdt.svg' }
 const USDT_COLOR = '#1fb5a8'
 const STARS_PRODUCT = 'stars'
 const GRAM_PRODUCT = 'gram'
@@ -133,6 +135,7 @@ const renderPay = () => {
           },
         },
         [
+          el('img', { class: 'pay__icon', src: METHOD_ICON[method], alt: '', width: '24', height: '24' }),
           el('span', { text: METHOD_LABEL[method] }),
           el('span', { class: 'pay__price', text: state.quote?.[method] ?? '—' }),
         ],

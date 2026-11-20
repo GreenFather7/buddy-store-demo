@@ -510,12 +510,23 @@ select.field__input {
 }
 
 .pay__options .choice {
-  /* название и цена плотно в две строки — так форма ниже и помещается над клавиатурой */
+  /* значок слева, справа от него название и цена в две плотные строки */
   display: grid;
-  justify-items: center;
-  gap: 0;
-  padding: 0.25rem;
+  grid-template-columns: auto auto;
+  justify-content: center;
+  align-items: center;
+  column-gap: 0.4375rem;
+  row-gap: 0;
+  padding: 0.25rem 0.375rem;
   line-height: 1.2;
+  text-align: left;
+}
+
+.pay__icon {
+  grid-row: span 2;
+  width: 1.5rem;
+  height: 1.5rem;
+  object-fit: contain;
 }
 
 .pay__price {
