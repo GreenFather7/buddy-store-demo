@@ -89,67 +89,70 @@
 }
 
 /* ── Выбор товара ──────────────────────────────────── */
+/* Разделы — одна строка маленьких капсул, листается влево-вправо.
+   Строка выходит к краям карточки, справа и слева капсулы плавно гаснут. */
 .products {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  --products-bleed: clamp(1rem, 0.6rem + 2vw, 1.5rem);
+  display: flex;
   gap: 0.5rem;
+  /* без этого строка капсул растянула бы карточку вместо прокрутки */
+  min-width: 0;
+  margin-inline: calc(var(--products-bleed) * -1);
+  padding: 0.25rem var(--products-bleed) 0.75rem;
+  margin-bottom: -0.75rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--products-bleed);
+  scrollbar-width: none;
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 var(--products-bleed),
+    #000 calc(100% - var(--products-bleed) * 1.5),
+    transparent
+  );
 }
 
-/* Плитка раздела: у каждого товара свой цвет — он подсвечивает плитку сверху,
-   даёт свечение иконке и рамку выбранному разделу. */
+.products::-webkit-scrollbar {
+  display: none;
+}
+
+/* Капсула раздела: у каждого товара свой цвет — он подсвечивает иконку
+   и заливает капсулу, когда раздел выбран. */
 .product {
   --product-color: #b46cff;
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  display: grid;
-  justify-items: center;
-  gap: 0.5rem;
-  padding: 0.875rem 0.25rem 0.75rem;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.875rem 0.5rem 0.6875rem;
   border: 0;
-  border-radius: 1rem;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--product-color) 9%, var(--color-surface-2)),
-    var(--color-surface-2) 75%
-  );
+  border-radius: 999px;
+  background: var(--color-surface-2);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
   color: var(--color-text-soft);
   font: inherit;
   font-size: var(--text-sm);
   font-weight: 600;
+  white-space: nowrap;
+  scroll-snap-align: start;
   cursor: pointer;
   transition:
     color var(--duration-fast),
+    background-color var(--duration-normal),
     box-shadow var(--duration-normal),
     transform var(--duration-normal) var(--ease-out-expo);
 }
 
-/* Цветное свечение за иконкой */
-.product::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  top: -45%;
-  left: 50%;
-  width: 95%;
-  aspect-ratio: 1;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--product-color) 55%, transparent), transparent);
-  opacity: 0.28;
-  transform: translateX(-50%);
-  transition:
-    opacity var(--duration-normal),
-    transform var(--duration-normal) var(--ease-out-expo);
-  pointer-events: none;
-}
-
 /* Все иконки — в одной сетке 24×24, плоский глиф, свой цвет у каждого товара */
 .product__icon {
-  width: 1.875rem;
-  height: 1.875rem;
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
   color: var(--product-color);
-  filter: drop-shadow(0 4px 8px color-mix(in srgb, var(--product-color) 45%, transparent));
-  transition: transform var(--duration-normal) var(--ease-out-expo);
+  filter: drop-shadow(0 2px 5px color-mix(in srgb, var(--product-color) 45%, transparent));
 }
 
 .product--stars {
@@ -174,36 +177,18 @@
 
 .product:hover {
   color: var(--color-text);
-  transform: translateY(-2px);
-}
-
-.product:hover::before {
-  opacity: 0.5;
 }
 
 .product:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
 
 .product[aria-checked="true"] {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--product-color) 26%, var(--color-surface-2)),
-    color-mix(in srgb, var(--product-color) 7%, var(--color-surface-2))
-  );
+  background: color-mix(in srgb, var(--product-color) 22%, var(--color-surface-2));
   color: var(--color-text);
   box-shadow:
     inset 0 0 0 1.5px color-mix(in srgb, var(--product-color) 80%, transparent),
-    0 12px 22px -14px var(--product-color);
-}
-
-.product[aria-checked="true"]::before {
-  opacity: 0.75;
-  transform: translateX(-50%) scale(1.15);
-}
-
-.product[aria-checked="true"] .product__icon {
-  transform: scale(1.14);
+    0 8px 16px -10px var(--product-color);
 }
 
 /* ── Форма заказа ──────────────────────────────────── */

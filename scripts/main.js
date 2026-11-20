@@ -319,6 +319,12 @@ const buildFields = () => {
   state.product.fields.forEach((field) => controls[field.key].reload())
 }
 
+const centerProduct = (productId) => {
+  const button = productButton(productId)
+  const target = button.offsetLeft - (productsEl.clientWidth - button.offsetWidth) / 2
+  productsEl.scrollTo({ left: target, behavior: 'smooth' })
+}
+
 const selectProduct = (productId) => {
   clearTimeout(quoteTimer)
   const product = PRODUCTS[productId]
@@ -326,6 +332,8 @@ const selectProduct = (productId) => {
   productsEl.querySelectorAll('[data-product]').forEach((button) => {
     button.setAttribute('aria-checked', String(button.dataset.product === productId))
   })
+  // Строка разделов листается: выбранная капсула должна быть видна целиком.
+  centerProduct(productId)
   showError(null)
   buildFields()
   renderPay()
