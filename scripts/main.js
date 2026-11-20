@@ -425,14 +425,25 @@ const optionsField = (field) => {
 
   const reload = async () => {
     const deps = field.dependsOn ?? []
-    // Пока вариантов нет (грузятся или ждут выбора выше), ряд занят заглушками того же размера:
-    // место под него не схлопывается, и кнопки оплаты ниже не прыгают.
-    body.replaceChildren(...skeletonChoices(field))
+    // Пока новые варианты грузятся или ждут выбора выше, ряд не пустеет: прежние варианты
+    // остаются приглушёнными и неактивными, а если их ещё не было — место держат невидимые заглушки.
+    // Так ряд не мигает и кнопки оплаты ниже не прыгают.
+    const shown = [...body.querySelectorAll('.choice:not(.choice--skeleton)')]
+    if (shown.length > 0) {
+      body.classList.add('choices--stale')
+      shown.forEach((button) => {
+        button.disabled = true
+        button.setAttribute('aria-checked', 'false')
+      })
+    } else {
+      body.replaceChildren(...skeletonChoices(field))
+    }
     if (deps.some((key) => state.values[key] === undefined)) return
     const snapshot = state
     try {
       const options = await field.options(snapshot.values)
       if (state.product !== snapshot.product || deps.some((key) => state.values[key] !== snapshot.values[key])) return
+      body.classList.remove('choices--stale')
       if (options.length === 0) {
         body.replaceChildren(el('span', { class: 'field__hint', text: 'Сейчас нет в наличии' }))
       } else if (field.type === 'select') {
@@ -459,6 +470,7 @@ const optionsField = (field) => {
       }
     } catch (error) {
       if (state.product !== snapshot.product) return
+      body.classList.remove('choices--stale')
       body.replaceChildren(el('span', { class: 'field__hint', text: errorText(error) }))
     }
   }
@@ -533,6 +545,7 @@ const centerCapsule = (button) => {
  */
 const selectProduct = (productId, service) => {
   clearTimeout(quoteTimer)
+  const isSameForm = Boolean(service) && state?.product.id === productId
   const product = PRODUCTS[productId]
   const values = service ? { [SERVICE_KEY]: service } : {}
   quotedSignature = null // новый раздел — цену считаем заново
@@ -544,7 +557,16 @@ const selectProduct = (productId, service) => {
   // Строка разделов листается: выбранная капсула должна быть видна целиком.
   if (active) centerCapsule(active)
   showError(null)
-  buildFields()
+  if (isSameForm) {
+    // Гифт-карты: другой сервис — та же форма. Ряды не пересоздаются, а перезагружаются на месте:
+    // страны и номиналы прежнего сервиса видны, пока не придут новые.
+    state.product.fields.forEach((field) => {
+      markInvalid(field, null)
+      controls[field.key].reload()
+    })
+  } else {
+    buildFields()
+  }
   renderPay()
   if (CONFIG.demo) prefillTestValues()
 }

@@ -11,7 +11,13 @@ const numberOf = (text) => Number(digitsOf(text).join('')) || 0
 const digitCell = (digit, order) => {
   const strip = document.createElement('span')
   strip.className = 'odo-strip'
-  strip.textContent = DIGITS.split('').join('\n')
+  // каждая цифра — отдельная строка фиксированной высоты: на iPhone строки текста
+  // с переносами выходили другой высоты, и цифры сидели криво
+  strip.append(...DIGITS.split('').map((digit) => {
+    const line = document.createElement('span')
+    line.textContent = digit
+    return line
+  }))
   strip.style.setProperty('--digit', String(digit))
   strip.style.setProperty('--order', String(order))
   const cell = document.createElement('span')

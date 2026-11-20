@@ -1280,15 +1280,16 @@ select.field__input {
 
 /* Лёгкое появление вариантов при смене раздела: капсулы чуть всплывают и проявляются
    волной слева направо. Волна короткая — дальние капсулы не ждут дольше ~0.3 с. */
+/* весь ряд проявляется разом и без сдвига: ряды листаются вбок, и сдвиг по вертикали
+   обрезался краем ряда («срезались» страны), а волна выглядела как наезд капсул друг на друга */
 .choice--appear {
-  animation: choice-appear 360ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
-  animation-delay: calc(min(var(--appear-index, 0), 7) * 40ms);
+  animation: choice-appear 280ms ease-out both;
 }
 
 @keyframes choice-appear {
   from {
     opacity: 0;
-    transform: translateY(0.375rem) scale(0.97);
+    transform: scale(0.96);
   }
 }
 
@@ -1334,7 +1335,6 @@ select.field__input {
 
 .odo-strip {
   display: block;
-  white-space: pre;
   transform: translateY(calc(var(--digit, 0) * var(--odo-line) * -1));
   transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
   transition-delay: calc(var(--order, 0) * 35ms);
@@ -1634,4 +1634,23 @@ p.raffle-sheet__tickets {
 p.raffle-sheet__tickets--in {
   background: rgb(255 178 36 / 0.12);
   color: var(--color-gold);
+}
+
+/* строки барабана, слово и знаки — одной фиксированной высоты, чтобы всё стояло на одной линии */
+.odo-strip > span,
+.pay-word,
+.odo-char {
+  display: block;
+  height: var(--odo-line);
+  line-height: var(--odo-line);
+}
+
+.odo-char {
+  white-space: pre;
+}
+
+/* прежние варианты, пока грузятся новые: видны, но неактивны */
+.choices--stale > .choice {
+  opacity: 0.35;
+  transition: opacity 200ms;
 }
