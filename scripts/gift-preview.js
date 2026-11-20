@@ -22,6 +22,23 @@ const loadLottie = () => {
 }
 
 /**
+ * Проигрывает Lottie-анимацию из файла в контейнере (например, NFT-приз розыгрыша).
+ * @returns {Promise<{ destroy: () => void } | null>} null — анимацию загрузить не удалось
+ */
+export const playLottie = async (container, url) => {
+  try {
+    const lottie = await loadLottie()
+    const response = await fetch(url)
+    if (!response.ok) throw new Error(`анимация ${url}: ${response.status}`)
+    const animationData = await response.json()
+    return lottie.loadAnimation({ container, renderer: 'svg', loop: true, autoplay: true, animationData })
+  } catch (error) {
+    console.error(error) // анимация — украшение: остаётся картинка
+    return null
+  }
+}
+
+/**
  * @param {HTMLElement} slot место в строке ввода
  * @returns {{ show: (gift: { id: number, emoji: string }) => Promise<void>, clear: () => void }}
  */

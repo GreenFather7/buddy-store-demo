@@ -1392,18 +1392,11 @@ select.field__input {
 
 .raffle-card__prize {
   flex: none;
-  display: grid;
   width: 2.75rem;
   height: 2.75rem;
   border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--raffle) 40%, transparent), transparent);
-}
-
-.raffle-card__prize .gift-preview__image,
-.raffle-card__prize .gift-preview__stage {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  object-fit: cover;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--raffle) 60%, transparent);
 }
 
 .raffle-card__text {
@@ -1443,7 +1436,7 @@ select.field__input {
   position: relative;
   display: grid;
   place-items: center;
-  height: 8.5rem;
+  height: 10rem;
 }
 
 .raffle-sheet__glow {
@@ -1455,22 +1448,32 @@ select.field__input {
   animation: raffle-glow 2.6s ease-in-out infinite;
 }
 
+/* NFT как карточка подарка в Telegram: квадрат со скруглением, фон и узор — из самой анимации */
 .raffle-sheet__prize {
   position: relative;
   display: grid;
-  width: 8rem;
-  height: 8rem;
+  width: 9rem;
+  height: 9rem;
+  overflow: hidden;
+  border-radius: 1.75rem;
+  box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.7), inset 0 0 0 1px rgb(255 255 255 / 0.08);
 }
 
-.raffle-sheet__prize .gift-preview__image,
-.raffle-sheet__prize .gift-preview__stage {
+.raffle-sheet__image,
+.raffle-sheet__lottie {
+  grid-area: 1 / 1;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
 }
 
-.raffle-sheet__prize .gift-preview__emoji {
-  font-size: 5rem;
+.raffle-sheet__lottie {
+  opacity: 0;
+  transition: opacity 300ms;
+}
+
+.raffle-sheet__prize--playing .raffle-sheet__lottie {
+  opacity: 1;
 }
 
 .raffle-sheet__title {

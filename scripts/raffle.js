@@ -4,7 +4,7 @@
 // приз — мишка из анимаций мини-приложения, билеты копятся за тестовые покупки звёзд.
 
 import { el } from './dom.js'
-import { createGiftPreview } from './gift-preview.js'
+import { playLottie } from './gift-preview.js'
 
 const RAFFLE_HOUR = 20
 const STARS_PER_TICKET = 50
@@ -15,8 +15,18 @@ const MS_PER_SECOND = 1000
 const SECONDS_PER_MINUTE = 60
 const MINUTES_PER_HOUR = 60
 
-/** Приз в тестовом режиме. Настоящий придёт из состояния розыгрыша на бэкенде (raffle_state). */
-const DEMO_PRIZE = { giftId: 21, emoji: '🧸', title: 'Плюшевый мишка', number: '#1042' }
+/**
+ * Приз в тестовом режиме — NFT Plush Pepe #1. Картинка и анимация взяты с Fragment
+ * (nft.fragment.com/gift/plushpepe-1.medium.jpg и .lottie.json), откуда бот берёт превью приза.
+ * Настоящий приз придёт из состояния розыгрыша на бэкенде (raffle_state.gift_url).
+ */
+const DEMO_PRIZE = {
+  title: 'Plush Pepe',
+  number: '#1',
+  link: 'https://t.me/nft/PlushPepe-1',
+  image: 'assets/raffle/plushpepe-1.jpg',
+  animation: 'assets/raffle/plushpepe-1.json',
+}
 /** Сколько билетов у всех участников — чтобы показать шанс. В боте это сумма raffle_tickets за день. */
 const DEMO_TOTAL_TICKETS = 240
 
@@ -105,14 +115,28 @@ const openSheet = (onBuyStars) => {
     clock.textContent = countdown()
   }, CLOCK_TICK_MS)
 
-  const prize = el('span', { class: 'raffle-sheet__prize', 'aria-hidden': 'true' })
-  createGiftPreview(prize).show({ id: DEMO_PRIZE.giftId, emoji: DEMO_PRIZE.emoji })
+  // сначала картинка, поверх неё запускается анимация NFT — как карточка подарка в Telegram
+  const prizeImage = el('img', { class: 'raffle-sheet__image', src: DEMO_PRIZE.image, alt: '', width: '144', height: '144' })
+  const prizeStage = el('span', { class: 'raffle-sheet__lottie' })
+  const prize = el('a', {
+    class: 'raffle-sheet__prize',
+    href: DEMO_PRIZE.link,
+    target: '_blank',
+    rel: 'noopener',
+    'aria-label': `${DEMO_PRIZE.title} ${DEMO_PRIZE.number} в Telegram`,
+  }, [prizeImage, prizeStage])
+  let animation = null
+  playLottie(prizeStage, DEMO_PRIZE.animation).then((played) => {
+    animation = played
+    if (played) prize.classList.add('raffle-sheet__prize--playing')
+  })
 
   const progress = el('span', { class: 'raffle-sheet__progress' }, [el('i', {})])
   progress.firstChild.style.setProperty('--progress', String(Math.min(tickets / MIN_TICKETS, 1)))
 
   const close = () => {
     clearInterval(timer)
+    animation?.destroy()
     document.removeEventListener('keydown', onKey)
     sheet.classList.add('test-sheet--closing')
     sheet.addEventListener('animationend', () => sheet.remove(), { once: true })
@@ -170,8 +194,7 @@ const openSheet = (onBuyStars) => {
  * @param {() => void} onBuyStars
  */
 export const mountRaffle = (anchor, onBuyStars) => {
-  const prize = el('span', { class: 'raffle-card__prize', 'aria-hidden': 'true' })
-  createGiftPreview(prize).show({ id: DEMO_PRIZE.giftId, emoji: DEMO_PRIZE.emoji })
+  const prize = el('img', { class: 'raffle-card__prize', src: DEMO_PRIZE.image, alt: '', width: '44', height: '44' })
   const clock = el('span', { class: 'raffle-card__clock' })
   const tickets = el('span', { class: 'raffle-card__tickets' })
   const card = el(
@@ -180,7 +203,7 @@ export const mountRaffle = (anchor, onBuyStars) => {
     [
       prize,
       el('span', { class: 'raffle-card__text' }, [
-        el('strong', { text: 'Розыгрыш NFT' }),
+        el('strong', { text: `Розыгрыш ${DEMO_PRIZE.title} ${DEMO_PRIZE.number}` }),
         el('span', { class: 'raffle-card__meta' }, [clock, tickets]),
       ]),
       el('span', { class: 'raffle-card__arrow', text: '›', 'aria-hidden': 'true' }),
