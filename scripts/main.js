@@ -295,7 +295,7 @@ const inputField = (field) => {
         preset.icon && el('img', { class: 'preset-icon', src: preset.icon, alt: '', width: '24', height: '24' }),
         el('span', { text: groupThousands(preset.value) }),
       ],
-    ), index),
+    ), index + 1), // шаблоны — следом за строкой ввода
   )
   return {
     cell: el('span', { class: `field__cell${isNumber ? ' field__cell--amount' : ''}` }, [
@@ -406,7 +406,8 @@ const buildFields = () => {
     if (field.type === 'text' || field.type === 'number') {
       const { cell, presets } = inputField(field)
       if (!combo) {
-        const control = el('div', { class: 'field__control' })
+        // строка ввода появляется так же, как ряды капсул: всплывает и проявляется
+        const control = appear(el('div', { class: 'field__control' }), 0)
         combo = { control, wrapper: el('div', { class: 'field field--combo' }, [control]) }
         nodes.push(combo.wrapper)
       }
