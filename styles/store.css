@@ -504,8 +504,10 @@ select.field__input {
 }
 
 .pay__options {
+  /* сколько способов оплаты — столько равных колонок на всю ширину: два не жмутся к краю */
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 0.5rem;
 }
 
