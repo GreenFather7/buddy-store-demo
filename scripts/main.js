@@ -16,6 +16,7 @@ import { settleDemoOrder } from './mock.js'
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
 const TAP_SLOP_PX = 10
+const HTTP_NOT_FOUND = 404
 const SKELETON_COUNT = 4
 /** Поле с username получателя в разделах Telegram. */
 const RECIPIENT_KEY = 'recipient'
@@ -53,9 +54,33 @@ let controls = {}
 /** Показ выбранного подарка в строке ввода; есть только в разделе подарков. */
 let giftPreview = null
 
+/** Текст ошибки показывается на самой кнопке оплаты: под формой ничего не появляется и не сдвигается. */
+let errorMessage = null
+
+const updateSubmit = () => {
+  const price = state?.quote?.[state.method]
+  submitEl.classList.toggle('order__submit--error', Boolean(errorMessage))
+  submitLabelEl.textContent = errorMessage ?? (price && /\d/.test(price) ? `Оплатить ${price}` : 'Оплатить')
+}
+
 const showError = (text) => {
-  errorEl.textContent = text ?? ''
-  errorEl.hidden = !text
+  errorMessage = text ?? null
+  errorEl.textContent = text ?? '' // для экранных дикторов (role="alert")
+  if (state) updateSubmit()
+}
+
+/** Поле, к которому относится ответ «не найдено»: ник получателя или логин Steam. */
+const ACCOUNT_KEYS = ['recipient', 'account']
+
+/** Ошибка сервера: «аккаунт не найден» — красная рамка у поля, остальное — текстом на кнопке. */
+const reportError = (error) => {
+  const text = errorText(error)
+  const field = state.product.fields.find((item) => ACCOUNT_KEYS.includes(item.key))
+  if (error instanceof ApiError && error.status === HTTP_NOT_FOUND && field) {
+    markInvalid(field, text)
+    return
+  }
+  showError(text)
 }
 
 const errorText = (error) => {
@@ -149,8 +174,7 @@ const renderPay = () => {
       ),
     ),
   )
-  const price = state.quote?.[state.method]
-  submitLabelEl.textContent = price && /\d/.test(price) ? `Оплатить ${price}` : 'Оплатить'
+  updateSubmit()
   submitEl.disabled = state.isBusy
   syncHero()
 }
@@ -170,7 +194,7 @@ const requestQuote = () => {
       showError(null)
     } catch (error) {
       if (state.values !== snapshot.values) return
-      showError(errorText(error))
+      reportError(error)
     }
     renderPay()
   }, QUOTE_DEBOUNCE_MS)
@@ -494,7 +518,7 @@ const submit = async (event) => {
     }
     openStatus(order)
   } catch (error) {
-    showError(errorText(error))
+    reportError(error)
   }
   state = { ...state, isBusy: false }
   renderPay()
