@@ -171,8 +171,9 @@
   --product-color: #dfe6ee;
 }
 
-.product--cards {
-  --product-color: #ff5a4d;
+.product:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .product:hover {
@@ -347,18 +348,6 @@ select.field__input {
   gap: 0.375rem;
 }
 
-/* Сервисы гифт-карт — ровная сетка обложек */
-.choices--brand {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-}
-
-@media (min-width: 480px) {
-  .choices--brand {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
 .choice {
   display: grid;
   justify-items: center;
@@ -408,123 +397,7 @@ select.field__input {
   line-height: 1.2;
 }
 
-/* Карта сервиса — в пропорции банковской карты (1,586 : 1). Слои: фирменный градиент,
-   блик сверху слева и затемнение снизу справа для объёма, точечная фактура, крупный
-   водяной знак логотипа за краем и связка «логотип + название» по центру. */
-.choice--brand {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* Размеры связки считаются от ширины карты (cqw): она одинаково сидит
-     и на крупных картах в два столбца, и на мелких в четыре. */
-  container-type: size;
-  gap: 0;
-  aspect-ratio: 1.586;
-  min-height: 0;
-  padding: 0;
-  border-radius: 10% / 16%;
-  background:
-    radial-gradient(85% 110% at 8% 0%, rgb(255 255 255 / 0.3), transparent 58%),
-    radial-gradient(90% 120% at 100% 100%, rgb(0 0 0 / 0.42), transparent 62%),
-    linear-gradient(135deg, var(--brand-from), var(--brand-to));
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.32),
-    inset 0 0 0 1px rgb(255 255 255 / 0.09),
-    0 10px 18px -12px var(--brand-to);
-  color: #fff;
-  transition:
-    transform var(--duration-normal) var(--ease-out-expo),
-    opacity var(--duration-normal),
-    filter var(--duration-normal),
-    box-shadow var(--duration-normal);
-}
-
-/* Точечная фактура, тающая к левому краю */
-.choice--brand::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: radial-gradient(rgb(255 255 255 / 0.16) 0.6px, transparent 1px) 0 0 / 5px 5px;
-  mask-image: linear-gradient(100deg, transparent 35%, #000);
-  pointer-events: none;
-}
-
-/* Блик, пробегающий по карте при наведении */
-.choice--brand::after {
-  content: "";
-  position: absolute;
-  inset: -20% auto -20% 0;
-  width: 45%;
-  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.28), transparent);
-  transform: translateX(-140%) skewX(-18deg);
-  transition: transform 700ms var(--ease-out-expo);
-  pointer-events: none;
-}
-
-.choice--brand:hover {
-  color: #fff;
-  transform: translateY(-3px) scale(1.02);
-}
-
-.choice--brand:hover::after {
-  transform: translateX(340%) skewX(-18deg);
-}
-
-.choice--brand:active {
-  transform: scale(0.97);
-}
-
-.choice--brand[aria-checked="true"] {
-  background:
-    radial-gradient(85% 110% at 8% 0%, rgb(255 255 255 / 0.3), transparent 58%),
-    radial-gradient(90% 120% at 100% 100%, rgb(0 0 0 / 0.42), transparent 62%),
-    linear-gradient(135deg, var(--brand-from), var(--brand-to));
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.32),
-    0 0 0 2px var(--color-surface),
-    0 0 0 3.5px #fff,
-    0 14px 26px -10px var(--brand-to);
-}
-
-/* Когда сервис выбран, остальные карты отступают на второй план */
-.choices--brand:has([aria-checked="true"]) .choice--brand:not([aria-checked="true"], :hover, :disabled) {
-  opacity: 0.5;
-  filter: saturate(0.7);
-}
-
-.choice--brand:disabled {
-  opacity: 0.45;
-  filter: grayscale(0.9);
-  transform: none;
-}
-
-.choice--brand:disabled::after {
-  display: none;
-}
-
-.brand-logo {
-  flex: none;
-  width: 21cqw;
-  height: 21cqw;
-  filter: drop-shadow(0 3px 6px rgb(0 0 0 / 0.35));
-}
-
-.brand-label {
-  /* Отступ задан у подписи, а не gap у карты: cqw на самом контейнере считается не от него. */
-  margin-left: 5cqw;
-  color: #fff;
-  font-size: 9.5cqw;
-  font-weight: 700;
-  letter-spacing: -0.015em;
-  line-height: 1;
-  white-space: nowrap;
-  text-shadow: 0 1px 6px rgb(0 0 0 / 0.3);
-}
-
+/* Логотип сервиса водяным знаком — на карте с кодом */
 .brand-mark {
   position: absolute;
   right: -18%;
@@ -532,23 +405,6 @@ select.field__input {
   width: 78%;
   color: rgb(255 255 255 / 0.13);
   pointer-events: none;
-}
-
-/* Водяной знак на карте сервиса: крупный, с наклоном, уходит за правый нижний угол */
-.choice--brand .brand-mark {
-  z-index: -1;
-  right: -14cqw;
-  bottom: -22cqw;
-  width: 62cqw;
-  height: 62cqw;
-  color: rgb(255 255 255 / 0.1);
-  transform: rotate(-14deg);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .choice--brand::after {
-    display: none;
-  }
 }
 
 .pay {

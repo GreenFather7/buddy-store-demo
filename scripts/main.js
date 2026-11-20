@@ -1,10 +1,11 @@
 import { ApiError } from './api.js'
 import { BRANDS } from './brands.js'
 import { CONFIG } from './config.js'
-import { el, flagImage, isSafeLink, logoIcon, paintBrand } from './dom.js'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js'
 import { createHero, heroGlyph } from './hero.js'
+import { mixHex } from './hero-math.js'
 import { avatarUrl, describeError } from './lib.js'
-import { PRODUCTS, normalizeValue } from './products.js'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js'
 import { loadOrder, saveOrder, showStatus } from './status.js'
 import { initTelegram } from './telegram.js'
 
@@ -17,6 +18,10 @@ const METHOD_LABEL = { sbp: 'СБП', ton: 'TON', usdt: 'USDT' }
 const USDT_COLOR = '#1fb5a8'
 const STARS_PRODUCT = 'stars'
 const GRAM_PRODUCT = 'gram'
+const CARDS_PRODUCT = 'cards'
+const SERVICE_KEY = 'service'
+/** Тёмные фирменные цвета высветляются, чтобы логотип читался на капсуле. */
+const BRAND_ICON_LIFT = 0.25
 
 const root = document.querySelector('[data-checkout]')
 const productsEl = root.querySelector('[data-products]')
@@ -51,7 +56,13 @@ const errorText = (error) => {
 const isComplete = () => state.product.fields.every((field) => state.values[field.key] !== undefined)
 
 // ── Шапка ─────────────────────────────────────────────────────────
-const productButton = (productId) => productsEl.querySelector(`[data-product="${productId}"]`)
+/** Капсула в строке разделов: раздел или, для гифт-карт, конкретный сервис. */
+const capsule = (productId, service) =>
+  [...productsEl.querySelectorAll('[data-product]')].find(
+    (button) => button.dataset.product === productId && (button.dataset.service ?? '') === (service ?? ''),
+  )
+
+const productButton = (productId) => capsule(productId)
 
 const productLook = (productId) => {
   const button = productButton(productId)
@@ -63,7 +74,8 @@ const productLook = (productId) => {
 
 /** Сервис, чьи логотипы разлетаются: Steam или выбранная гифт-карта. */
 const selectedBrand = () => {
-  const brandId = state.product.id === 'steam' ? 'steam' : state.product.id === 'cards' ? state.values.service : null
+  const brandId =
+    state.product.id === 'steam' ? 'steam' : state.product.id === CARDS_PRODUCT ? state.values[SERVICE_KEY] : null
   return brandId && Object.hasOwn(BRANDS, brandId) ? { id: brandId, ...BRANDS[brandId] } : null
 }
 
@@ -72,13 +84,12 @@ const selectedBrand = () => {
 const syncParticles = () => {
   const brand = selectedBrand()
   const key = `${state.product.id}|${state.method}|${brand?.id ?? ''}`
-  const ownColor = productLook(state.product.id).color
   if (state.method === 'usdt') {
     hero.show({ key, animation: 'tether', color: USDT_COLOR })
   } else if (state.method === 'ton' || state.product.id === GRAM_PRODUCT) {
     hero.show({ key, animation: 'gram', color: productLook(GRAM_PRODUCT).color })
   } else if (state.product.id === STARS_PRODUCT) {
-    hero.show({ key, animation: 'stars', color: ownColor })
+    hero.show({ key, animation: 'stars', color: productLook(STARS_PRODUCT).color })
   } else if (brand) {
     hero.show({ key, animation: 'stars', color: brand.to, glyph: heroGlyph.fromPath(brand.path) })
   } else {
@@ -243,14 +254,13 @@ const optionButton = (field, option, group) => {
       },
     },
     [
-      option.brand && logoIcon(option.brand.path, 'brand-logo'),
       option.flag && flagImage(option.flag),
       option.icon && el('img', { class: 'preset-icon', src: option.icon, alt: '', width: '24', height: '24' }),
-      el('span', { class: option.brand ? 'brand-label' : undefined, text: option.label }),
+      el('span', { text: option.label }),
       option.sub && el('span', { class: 'pay__price', text: option.sub }),
     ],
   )
-  return option.brand ? paintBrand(button, option.brand) : button
+  return button
 }
 
 const optionsField = (field) => {
@@ -306,12 +316,13 @@ const buildFields = () => {
   controls = {}
   const nodes = state.product.fields.map((field) => {
     const isInput = field.type === 'text' || field.type === 'number'
-    const built = isInput ? { nodes: inputField(field), reload: () => {} } : optionsField(field)
+    const isStatic = isInput || field.isHidden
+    const built = isStatic ? { nodes: isInput ? inputField(field) : [], reload: () => {} } : optionsField(field)
     const hint = el('span', { class: 'field__hint', hidden: true })
     const label = isInput
       ? el('label', { class: 'field__label', for: `field-${field.key}`, text: field.label })
       : el('span', { class: 'field__label', text: field.label })
-    const wrapper = el('div', { class: 'field' }, [label, ...built.nodes, hint])
+    const wrapper = el('div', { class: 'field', hidden: field.isHidden }, [label, ...built.nodes, hint])
     controls[field.key] = { wrapper, hint, reload: built.reload }
     return wrapper
   })
@@ -319,24 +330,58 @@ const buildFields = () => {
   state.product.fields.forEach((field) => controls[field.key].reload())
 }
 
-const centerProduct = (productId) => {
-  const button = productButton(productId)
+const centerCapsule = (button) => {
   const target = button.offsetLeft - (productsEl.clientWidth - button.offsetWidth) / 2
   productsEl.scrollTo({ left: target, behavior: 'smooth' })
 }
 
-const selectProduct = (productId) => {
+/**
+ * @param {string} productId
+ * @param {string} [service] сервис гифт-карты — выбран капсулой, в форме его нет
+ */
+const selectProduct = (productId, service) => {
   clearTimeout(quoteTimer)
   const product = PRODUCTS[productId]
-  state = { product, values: {}, optionData: {}, method: product.methods[0], quote: null, isBusy: false }
+  const values = service ? { [SERVICE_KEY]: service } : {}
+  state = { product, values, optionData: {}, method: product.methods[0], quote: null, isBusy: false }
+  const active = capsule(productId, service)
   productsEl.querySelectorAll('[data-product]').forEach((button) => {
-    button.setAttribute('aria-checked', String(button.dataset.product === productId))
+    button.setAttribute('aria-checked', String(button === active))
   })
   // Строка разделов листается: выбранная капсула должна быть видна целиком.
-  centerProduct(productId)
+  if (active) centerCapsule(active)
   showError(null)
   buildFields()
   renderPay()
+}
+
+const brandCapsule = (service) => {
+  const button = el(
+    'button',
+    {
+      class: 'product',
+      type: 'button',
+      role: 'radio',
+      'aria-checked': 'false',
+      'data-product': CARDS_PRODUCT,
+      'data-service': service.id,
+      disabled: !service.isAvailable,
+    },
+    [service.brand && logoIcon(service.brand.path, 'product__icon'), el('span', { text: service.label })],
+  )
+  if (service.brand) button.style.setProperty('--product-color', mixHex(service.brand.to, '#ffffff', BRAND_ICON_LIFT))
+  return button
+}
+
+/** Дописывает в строку разделов по капсуле на каждый сервис гифт-карт из каталога. */
+const addCardCapsules = async () => {
+  try {
+    const services = await loadCardServices()
+    productsEl.append(...services.map(brandCapsule))
+  } catch (error) {
+    // Каталог гифт-карт недоступен — остальные разделы работают, капсул сервисов просто нет.
+    if (!(error instanceof ApiError)) console.error(error)
+  }
 }
 
 // ── Заказ ─────────────────────────────────────────────────────────
@@ -350,7 +395,9 @@ const openStatus = (order) => {
   setFormVisible(false)
   showStatus(statusEl, order, () => {
     setFormVisible(true)
-    selectProduct(order.productId)
+    const service = order.summary?.brand
+    if (order.productId === CARDS_PRODUCT && !capsule(CARDS_PRODUCT, service)) selectProduct(DEFAULT_PRODUCT)
+    else selectProduct(order.productId, order.productId === CARDS_PRODUCT ? service : undefined)
   })
 }
 
@@ -392,7 +439,9 @@ const submit = async (event) => {
 const init = () => {
   productsEl.addEventListener('click', (event) => {
     const button = event.target.closest('[data-product]')
-    if (button && button.dataset.product !== state.product.id) selectProduct(button.dataset.product)
+    if (button && button.getAttribute('aria-checked') !== 'true') {
+      selectProduct(button.dataset.product, button.dataset.service)
+    }
   })
   form.addEventListener('submit', submit)
 
@@ -406,6 +455,7 @@ const init = () => {
   }
 
   selectProduct(DEFAULT_PRODUCT)
+  addCardCapsules()
   const pendingOrder = loadOrder()
   if (pendingOrder) openStatus(pendingOrder)
 }

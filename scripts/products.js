@@ -259,28 +259,26 @@ const steam = {
   order: cardsOrder('/api/steam/create_order', ({ account, amount }) => ({ account, amount })),
 }
 
+/** Сервисы гифт-карт из каталога — по капсуле на каждый в строке разделов. */
+export const loadCardServices = async () => {
+  const { items } = await request('cards', '/api/catalog', { isPublic: true })
+  return items
+    .filter((item) => item.flow === 'voucher')
+    .map((item) => ({
+      id: item.voucher_type,
+      label: BRANDS[item.voucher_type]?.label ?? item.name,
+      brand: BRANDS[item.voucher_type],
+      isAvailable: Boolean(item.is_available),
+    }))
+}
+
 const cards = {
   id: 'cards',
   doneText: 'Ваш код',
   methods: ['sbp', 'usdt'],
   fields: [
-    {
-      key: 'service',
-      type: 'choice',
-      label: 'Сервис',
-      variant: 'brand',
-      options: async () => {
-        const { items } = await request('cards', '/api/catalog', { isPublic: true })
-        return items
-          .filter((item) => item.flow === 'voucher')
-          .map((item) => ({
-            value: item.voucher_type,
-            label: BRANDS[item.voucher_type]?.label ?? item.name,
-            brand: BRANDS[item.voucher_type],
-            disabled: !item.is_available,
-          }))
-      },
-    },
+    // Сервис выбирается капсулой в строке разделов, поэтому в форме его нет.
+    { key: 'service', type: 'choice', label: 'Сервис', isHidden: true },
     {
       key: 'region',
       type: 'choice',
