@@ -40,16 +40,22 @@ export const isValidSteamLogin = (raw) => STEAM_LOGIN_PATTERN.test(String(raw ??
 
 /** Целое в диапазоне или null, если ввод не число или вне границ. */
 export const parseIntInRange = (raw, min, max) => {
-  const text = String(raw ?? '').trim()
+  // пробелы между разрядами («1 000») допустимы — так суммы показаны на кнопках
+  const text = String(raw ?? '').replace(/\s/g, '')
   if (!/^\d+$/.test(text)) return null
   const value = Number(text)
   return value >= min && value <= max ? value : null
 }
 
+const NBSP = '\u00a0'
+
+/** 1000 → «1 000»: разряды через неразрывный пробел, чтобы число не рвалось при переносе. */
+export const groupThousands = (value) => String(value).replace(/\B(?=(\d{3})+(?!\d))/g, NBSP)
+
 export const formatRub = (value) => {
   const amount = Math.ceil(Number(value))
   if (!Number.isFinite(amount)) return ''
-  return `${amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽`
+  return `${groupThousands(amount)}${NBSP}₽`
 }
 
 /** «1.50000» → «1.5»; не трогает целые. */

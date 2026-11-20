@@ -5,7 +5,7 @@ import { el, flagImage, isSafeLink, logoIcon } from './dom.js'
 import { ensureFreshBuild } from './fresh.js'
 import { createHero, heroGlyph } from './hero.js'
 import { mixHex } from './hero-math.js'
-import { avatarUrl, describeError } from './lib.js'
+import { avatarUrl, describeError, groupThousands } from './lib.js'
 import { PRODUCTS, loadCardServices, normalizeValue } from './products.js'
 import { loadOrder, saveOrder, showStatus } from './status.js'
 import { initTelegram } from './telegram.js'
@@ -226,13 +226,13 @@ const inputField = (field) => {
         class: 'choice choice--preset',
         type: 'button',
         onClick: () => {
-          input.value = String(preset.value)
+          input.value = groupThousands(preset.value)
           setValue(field, input.value)
         },
       },
       [
         preset.icon && el('img', { class: 'preset-icon', src: preset.icon, alt: '', width: '24', height: '24' }),
-        el('span', { text: String(preset.value) }),
+        el('span', { text: groupThousands(preset.value) }),
       ],
     ),
   )
