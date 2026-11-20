@@ -95,7 +95,14 @@ const updateSubmit = () => {
   const price = state?.quote?.[state.method]
   const amount = price && /\d/.test(price) ? price : ''
   const hadAmount = Boolean(amountEl.dataset.value)
+  // Пока количество набирают вручную (стёрли «50», набирают «5», «50», «500»), цены нет.
+  // В том же разделе прежняя сумма остаётся приглушённой, и новая прокручивается от неё.
+  // При смене раздела сумма убирается.
+  const isTyping = !amount && hadAmount && amountEl.dataset.product === state.product.id
+  amountEl.classList.toggle('pay-amount--stale', isTyping)
+  if (isTyping) return
   setAmount(amountEl, amount, isAnimated && hadAmount)
+  amountEl.dataset.product = state.product.id
   amountEl.hidden = !amount
   // первая сумма не «крутится» с нуля, а мягко появляется рядом со словом
   if (amount && !hadAmount && isAnimated) {

@@ -1349,3 +1349,13 @@ select.field__input {
     transition: none;
   }
 }
+
+/* сумма, пока количество набирают вручную и новой цены ещё нет */
+.pay-amount--stale {
+  opacity: 0.45;
+  transition: opacity 200ms;
+}
+
+.pay-amount {
+  transition: opacity 200ms;
+}
