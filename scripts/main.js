@@ -223,9 +223,8 @@ const renderPay = () => {
           },
         },
         [
-          el('img', { class: 'pay__icon', src: METHOD_ICON[method], alt: '', width: '24', height: '24' }),
-          // цена — только на кнопке «Оплатить»: она показывает сумму для выбранного способа
-          el('span', { text: METHOD_LABEL[method] }),
+          // только значок: название — для экранных дикторов, цена — на кнопке «Оплатить»
+          el('img', { class: 'pay__icon', src: METHOD_ICON[method], alt: METHOD_LABEL[method], width: '24', height: '24' }),
         ],
       ),
     ),
@@ -524,6 +523,8 @@ const buildFields = () => {
 // Тестовый режим: ник, логин и количество уже заполнены — можно сразу жать «Оплатить»
 // (первые варианты в рядах выбирает optionsField).
 // Ник и логин — публичные тестовые, количество — первый шаблон раздела.
+const IS_RAFFLE_VISIBLE = false
+
 const TEST_VALUES = { recipient: 'durov', account: 'test_login' }
 
 const prefillTestValues = () => {
@@ -635,7 +636,8 @@ const payInTestMode = async (order) => {
   settleDemoOrder(order.ref.orderId, outcome)
   // билеты розыгрыша — только за выданные звёзды, как в боте
   const added = outcome === 'success' && order.productId === STARS_PRODUCT ? addTicketsForStars(state.values.amount) : 0
-  const raffleNote = added > 0 ? `+${added} ${ticketsWord(added)} в розыгрыш NFT` : null
+  // пока розыгрыш скрыт, плашку «+N билетов» на экране успеха не показываем
+  const raffleNote = IS_RAFFLE_VISIBLE && added > 0 ? `+${added} ${ticketsWord(added)} в розыгрыш NFT` : null
   openStatus({ ...order, testOutcome: outcome, raffleNote })
 }
 
@@ -713,7 +715,8 @@ const init = () => {
   form.addEventListener('submit', submit)
   if (CONFIG.demo) {
     mountBalance(submitEl)
-    mountRaffle(submitEl, () => selectProduct(STARS_PRODUCT))
+    // розыгрыш NFT пока скрыт с главного экрана (готовый модуль — raffle.js); вернуть — раскомментировать
+    // mountRaffle(submitEl, () => selectProduct(STARS_PRODUCT))
   }
   keepFormInPlace()
 
