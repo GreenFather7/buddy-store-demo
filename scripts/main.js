@@ -2,6 +2,7 @@ import { ApiError } from './api.js'
 import { BRANDS } from './brands.js'
 import { CONFIG } from './config.js'
 import { el, flagImage, isSafeLink, logoIcon } from './dom.js'
+import { ensureFreshBuild } from './fresh.js'
 import { createHero, heroGlyph } from './hero.js'
 import { mixHex } from './hero-math.js'
 import { avatarUrl, describeError } from './lib.js'
@@ -505,5 +506,6 @@ const init = () => {
   if (pendingOrder) openStatus(pendingOrder)
 }
 
+ensureFreshBuild()
 initTelegram()
 init()
