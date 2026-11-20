@@ -522,7 +522,8 @@ select.field__input {
 .choices--region {
   flex-wrap: nowrap;
   margin-inline: calc(var(--space-gutter) * -1);
-  padding: 2px var(--space-gutter);
+  /* обводка выбранного — внутренняя тень, запас по вертикали не нужен */
+  padding: 0 var(--space-gutter);
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
@@ -906,4 +907,30 @@ select.field__input {
 .gift-preview__emoji {
   font-size: 2rem;
   line-height: 1;
+}
+
+/* ── Ровное переключение разделов ───────────────────────
+   У каждого раздела форма одной высоты: строка ввода (или первый ряд) и один ряд вариантов
+   под ней, все ряды по 2.75rem. Поэтому при переключении способы оплаты и кнопка «Оплатить»
+   не сдвигаются ни на пиксель. У гифт-карт два ряда вариантов (страны и номиналы) — они
+   помещаются в ту же высоту. */
+.order__fields,
+.is-telegram .order__fields {
+  --row: 2.75rem;
+  --input-row: 3.75rem;
+  --rows-gap: 0.3125rem;
+  gap: var(--rows-gap);
+  min-height: calc(var(--input-row) + var(--rows-gap) + var(--row));
+  align-content: start;
+}
+
+.choice--media {
+  width: var(--row, 2.75rem);
+  height: var(--row, 2.75rem);
+  font-size: 1.375rem;
+}
+
+.choices > .choice {
+  height: var(--row, 2.75rem);
+  min-height: 0;
 }
