@@ -1680,9 +1680,3 @@ p.raffle-sheet__tickets--in {
 .pay__options {
   --icon-visible: 1.5rem;
 }
-
-/* выбранный раздел вверху — тоже только обводкой в его цвет, без заливки и свечения */
-.product[aria-checked="true"] {
-  background: var(--color-surface-2);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--product-color) 55%, transparent);
-}
