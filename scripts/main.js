@@ -10,6 +10,7 @@ import { avatarUrl, describeError, groupThousands } from './lib.js'
 import { PRODUCTS, loadCardServices, normalizeValue } from './products.js'
 import { loadOrder, saveOrder, showStatus } from './status.js'
 import { hapticError, initTelegram } from './telegram.js'
+import { setAmount } from './odometer.js'
 import { askTestPayment, mountBalance } from './testpay.js'
 import { settleDemoOrder } from './mock.js'
 
@@ -47,6 +48,7 @@ const hero = createHero(document.querySelector('[data-hero]'))
 /** Состояние формы. Заменяется целиком при смене товара. */
 let state = null
 let quoteTimer = 0
+let quotedProduct = null
 let avatarTimer = 0
 let shownRecipient = null
 /** key → { wrapper, hint, reload } для полей текущего товара. */
@@ -63,17 +65,41 @@ const LABEL_IN = [
 ]
 const LABEL_IN_MS = 320
 
+const PAY_WORD = 'Оплатить'
+
+/** Кнопка оплаты: слово «Оплатить» стоит на месте, сумма рядом прокручивается как счётчик. */
 const updateSubmit = () => {
-  const price = state?.quote?.[state.method]
-  submitEl.classList.toggle('order__submit--error', Boolean(errorMessage))
   // пока считается новая цена, на кнопке остаётся прежняя сумма — без мигания «Оплатить»
-  if (!errorMessage && !state?.quote && state && isComplete()) return
-  const label = errorMessage ?? (price && /\d/.test(price) ? `Оплатить ${price}` : 'Оплатить')
-  if (submitLabelEl.textContent === label) return
-  submitLabelEl.textContent = label
-  // новая сумма или текст ошибки на кнопке мягко всплывают снизу
-  if (!prefersLessMotion.matches) {
-    submitLabelEl.animate(LABEL_IN, { duration: LABEL_IN_MS, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' })
+  if (!errorMessage && !state?.quote && state && canQuote()) return
+  submitEl.classList.toggle('order__submit--error', Boolean(errorMessage))
+  const isAnimated = !prefersLessMotion.matches
+  if (errorMessage) {
+    if (submitLabelEl.dataset.error === errorMessage) return
+    submitLabelEl.dataset.error = errorMessage
+    submitLabelEl.replaceChildren(errorMessage)
+    if (isAnimated) {
+      submitLabelEl.animate(LABEL_IN, { duration: LABEL_IN_MS, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' })
+    }
+    return
+  }
+  const wasError = 'error' in submitLabelEl.dataset
+  let amountEl = submitLabelEl.querySelector('.pay-amount')
+  if (!amountEl) {
+    delete submitLabelEl.dataset.error
+    amountEl = el('span', { class: 'pay-amount' })
+    submitLabelEl.replaceChildren(el('span', { class: 'pay-word', text: PAY_WORD }), amountEl)
+    if (wasError && isAnimated) {
+      submitLabelEl.animate(LABEL_IN, { duration: LABEL_IN_MS, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' })
+    }
+  }
+  const price = state?.quote?.[state.method]
+  const amount = price && /\d/.test(price) ? price : ''
+  const hadAmount = Boolean(amountEl.dataset.value)
+  setAmount(amountEl, amount, isAnimated && hadAmount)
+  amountEl.hidden = !amount
+  // первая сумма не «крутится» с нуля, а мягко появляется рядом со словом
+  if (amount && !hadAmount && isAnimated) {
+    amountEl.animate(LABEL_IN, { duration: LABEL_IN_MS, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' })
   }
 }
 
@@ -103,6 +129,14 @@ const errorText = (error) => {
 }
 
 const isComplete = () => state.product.fields.every((field) => state.values[field.key] !== undefined)
+
+const priceKeys = () => state.product.quoteKeys ?? state.product.fields.map((field) => field.key)
+
+/** Хватает ли данных для цены: у товаров с quoteKeys — только этих полей (например, количество звёзд без ника). */
+const canQuote = () => priceKeys().every((key) => state.values[key] !== undefined)
+
+/** Отпечаток полей, от которых зависит цена: ввод ника у звёзд цену не пересчитывает. */
+const priceSignature = () => JSON.stringify(priceKeys().map((key) => state.values[key]))
 
 // ── Шапка ─────────────────────────────────────────────────────────
 /** Капсула в строке разделов: раздел или, для гифт-карт, конкретный сервис. */
@@ -193,21 +227,32 @@ const renderPay = () => {
   syncHero()
 }
 
+let quotedSignature = null
+
 const requestQuote = () => {
+  const signature = priceSignature()
+  // поле, от которого цена не зависит (ник у звёзд), — цену не трогаем
+  if (signature === quotedSignature && state.product === quotedProduct) {
+    renderPay()
+    return
+  }
   clearTimeout(quoteTimer)
+  quotedSignature = signature
+  quotedProduct = state.product
   state = { ...state, quote: null }
   renderPay()
-  if (!isComplete()) return
+  if (!canQuote()) return
   const snapshot = state
   quoteTimer = setTimeout(async () => {
+    const isStale = () => state.product !== snapshot.product || priceSignature() !== signature
     try {
       const quote = await snapshot.product.quote(snapshot.values, snapshot.optionData)
-      // Пока шёл запрос, покупатель мог изменить форму — устаревший ответ не показываем.
-      if (state.values !== snapshot.values) return
+      // Пока шёл запрос, покупатель мог изменить количество — устаревшую цену не показываем.
+      if (isStale()) return
       state = { ...state, quote }
       showError(null)
     } catch (error) {
-      if (state.values !== snapshot.values) return
+      if (isStale()) return
       reportError(error)
     }
     renderPay()
@@ -462,6 +507,7 @@ const selectProduct = (productId, service) => {
   clearTimeout(quoteTimer)
   const product = PRODUCTS[productId]
   const values = service ? { [SERVICE_KEY]: service } : {}
+  quotedSignature = null // новый раздел — цену считаем заново
   state = { product, values, optionData: {}, method: product.methods[0], quote: null, isBusy: false }
   const active = capsule(productId, service)
   productsEl.querySelectorAll('[data-product]').forEach((button) => {

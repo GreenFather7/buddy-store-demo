@@ -97,6 +97,8 @@ export const checkCardsOrder = async ({ orderId }) => {
 
 const stars = {
   id: 'stars',
+  // цена звёзд зависит только от количества — показываем её, не дожидаясь ника
+  quoteKeys: ['amount'],
   summary: ({ recipient, amount }) => ({ line: `${groupThousands(amount)} ⭐ для @${recipient}` }),
   doneText: 'Звёзды отправлены',
   fields: [
@@ -125,6 +127,7 @@ const stars = {
 
 const premium = {
   id: 'premium',
+  // бэкенд считает цену через Fragment для конкретного получателя — без ника цены нет
   summary: ({ recipient, months }) => ({ line: `Premium на ${PREMIUM_LABEL[months] ?? `${months} мес.`} для @${recipient}` }),
   doneText: 'Premium подключён',
   fields: [
@@ -161,6 +164,7 @@ const premium = {
 
 const gram = {
   id: 'gram',
+  // бэкенд считает цену через Fragment для конкретного получателя — без ника цены нет
   summary: ({ recipient, amount }) => ({ line: `${groupThousands(amount)} Gram для @${recipient}` }),
   doneText: 'Gram отправлен',
   fields: [
@@ -191,6 +195,8 @@ const gram = {
 
 const gifts = {
   id: 'gifts',
+  // цена подарка известна из списка — показываем сразу после выбора
+  quoteKeys: ['gift'],
   summary: ({ recipient, gift }, options) => ({ line: `для @${recipient}`, gift: { id: gift, emoji: options.gift?.emoji ?? '🎁' } }),
   doneText: 'Подарок отправлен',
   fields: [
