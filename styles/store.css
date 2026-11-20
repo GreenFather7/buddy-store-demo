@@ -187,6 +187,71 @@
     0 8px 16px -10px var(--product-color);
 }
 
+/* Выбор раздела: иконка подпрыгивает с лёгким разворотом, а от неё расходится
+   кольцо в цвете раздела. Анимация запускается заново при каждом выборе. */
+.product {
+  position: relative;
+}
+
+.product[aria-checked="true"] .product__icon {
+  animation: product-pop 560ms var(--ease-out-expo);
+}
+
+.product::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 1.3125rem; /* центр иконки: левый отступ капсулы + половина иконки */
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: -0.625rem 0 0 -0.625rem;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--product-color);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.product[aria-checked="true"]::after {
+  animation: product-ring 620ms ease-out;
+}
+
+@keyframes product-pop {
+  0% {
+    transform: scale(0.6) rotate(-18deg);
+  }
+
+  45% {
+    transform: scale(1.45) rotate(10deg);
+  }
+
+  70% {
+    transform: scale(0.92) rotate(-4deg);
+  }
+
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes product-ring {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.5);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product[aria-checked="true"] .product__icon,
+  .product[aria-checked="true"]::after {
+    animation: none;
+  }
+}
+
 /* ── Форма заказа ──────────────────────────────────── */
 .order,
 .order__fields {
