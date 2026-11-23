@@ -1,15 +1,15 @@
-import { ApiError, request } from './api.js?v=1795438633'
-import { CONFIG } from './config.js?v=1795438633'
-import { BRANDS } from './brands.js?v=1795438633'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795438633'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795438633'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795438633'
-import { createGiftPreview } from './gift-preview.js?v=1795438633'
-import { revealCode, startScramble } from './codefx.js?v=1795438633'
-import { RAFFLE_MIN_TICKETS, rafflePrizeLink, rafflePrizeName, ticketsFor, ticketsWord } from './raffle.js?v=1795438633'
-import { mixHex } from './hero-math.js?v=1795438633'
-import { giftLink, validGift } from './gift-link.js?v=1795438633'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795438633'
+import { ApiError, request } from './api.js?v=1795438752'
+import { CONFIG } from './config.js?v=1795438752'
+import { BRANDS } from './brands.js?v=1795438752'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795438752'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795438752'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795438752'
+import { createGiftPreview } from './gift-preview.js?v=1795438752'
+import { revealCode, startScramble } from './codefx.js?v=1795438752'
+import { RAFFLE_MIN_TICKETS, rafflePrizeLink, ticketsFor } from './raffle.js?v=1795438752'
+import { mixHex } from './hero-math.js?v=1795438752'
+import { giftLink, validGift } from './gift-link.js?v=1795438752'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795438752'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -319,17 +319,17 @@ const RAFFLE_TIME = '20:00'
 
 /** Текст плашки: билеты за эту покупку или чем их получить. */
 /**
- * Текст плашки: человек видит, какой подарок разыгрывается и что он в нём участвует.
- * Как в боте: участвуют от 3 билетов за день, меньше — билеты копятся к розыгрышу.
+ * Текст плашки — простыми словами, что происходит: идёт розыгрыш NFT-подарка и участвует ли человек.
+ * Сам подарок видно по нажатию. Как в боте: участвуют от 3 билетов за день, 1 билет за 50 звёзд.
  */
 const raffleText = (order) => {
-  const prize = rafflePrizeName()
-  if (order.productId !== 'stars') return `🎟 Билеты на ${prize} — за звёзды`
-  if (!isInTelegram()) return `🎟 Билеты на ${prize} — в Telegram`
+  if (order.productId !== 'stars') return '🎁 Выиграйте NFT — за звёзды'
+  if (!isInTelegram()) return '🎁 Розыгрыш NFT — в Telegram'
   const tickets = ticketsFor(order.summary?.amount)
-  if (tickets === 0) return `🎟 Билет на ${prize} — от 50 звёзд`
-  if (tickets < RAFFLE_MIN_TICKETS) return `🎟 +${tickets} ${ticketsWord(tickets)} к розыгрышу ${prize}`
-  return `🎟 Вы в розыгрыше ${prize} · +${tickets} ${ticketsWord(tickets)}`
+  if (tickets === 0) return '🎁 Розыгрыш NFT — от 50 звёзд'
+  const missing = RAFFLE_MIN_TICKETS - tickets
+  if (missing > 0) return `🎁 Ещё ${missing} 🎟 — и вы в розыгрыше NFT`
+  return `🎁 Вы в розыгрыше NFT · ${tickets} 🎟`
 }
 
 /**

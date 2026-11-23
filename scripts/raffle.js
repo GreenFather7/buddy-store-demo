@@ -3,8 +3,8 @@
 // Пока у бэкенда нет метода для сайта, данные розыгрыша есть только в тестовом режиме:
 // приз — мишка из анимаций мини-приложения, билеты копятся за тестовые покупки звёзд.
 
-import { el } from './dom.js?v=1795438633'
-import { playLottie } from './gift-preview.js?v=1795438633'
+import { el } from './dom.js?v=1795438752'
+import { playLottie } from './gift-preview.js?v=1795438752'
 
 const RAFFLE_HOUR = 20
 const STARS_PER_TICKET = 50
@@ -32,9 +32,6 @@ const DEMO_PRIZE = {
 
 /** Ссылка на разыгрываемый NFT в Telegram (t.me/nft/…): открывает стандартное окно подарка. */
 export const rafflePrizeLink = () => DEMO_PRIZE.link
-
-/** Название разыгрываемого подарка: «Plush Pepe #1». */
-export const rafflePrizeName = () => `${DEMO_PRIZE.title} ${DEMO_PRIZE.number}`
 
 /** До какого момента идёт текущий розыгрыш (ближайшие 20:00). */
 const nextDraw = (now = new Date()) => {
