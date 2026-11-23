@@ -8,7 +8,7 @@
       content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://t.me https://*.telesco.pe https://*.cdn-telegram.org; connect-src 'self' https:; base-uri 'self'; object-src 'none'; form-action 'self'"
     />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <meta name="build" content="1795421689" />
+    <meta name="build" content="1795421925" />
     <meta name="theme-color" content="#151517" />
     <title>Buddy — звёзды Telegram, Steam и гифт-карты</title>
     <meta
@@ -22,11 +22,11 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Unbounded:wght@500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles/tokens.css?v=1795421689" />
-    <link rel="stylesheet" href="styles/base.css?v=1795421689" />
-    <link rel="stylesheet" href="styles/store.css?v=1795421689" />
-    <script src="scripts/tg-boot.js?v=1795421689"></script>
-    <script type="module" src="scripts/main.js?v=1795421689"></script>
+    <link rel="stylesheet" href="styles/tokens.css?v=1795421925" />
+    <link rel="stylesheet" href="styles/base.css?v=1795421925" />
+    <link rel="stylesheet" href="styles/store.css?v=1795421925" />
+    <script src="scripts/tg-boot.js?v=1795421925"></script>
+    <script type="module" src="scripts/main.js?v=1795421925"></script>
   </head>
   <body>
     <header class="site-header">
@@ -85,7 +85,9 @@
           <!-- GTA VI: карта PlayStation или Xbox, которой хватает на игру; значок — пальма (без логотипа игры) -->
           <button class="product product--gta" type="button" role="radio" aria-checked="false" data-product="gta">
             <svg class="product__icon" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
-              <path fill="currentColor" d="M12 7.2C10 4.6 6.5 4 4 5.5c2.5.2 4.3 1 5.6 2.4C7 8.2 4.4 9.6 3.5 12.5c2-1.6 4.6-2.6 7.2-2.6zM12 7.2c2-2.6 5.5-3.2 8-1.7-2.5.2-4.3 1-5.6 2.4 2.6.3 5.2 1.7 6.1 4.6-2-1.6-4.6-2.6-7.2-2.6zM11.6 7c-.4-2 .4-3.9 1.9-5.1-.3 1.6-.5 3.3-.1 5zM11 9.6h1.9c.3 4.2 1.2 8 2.6 11.4h-2.3c-1.2-3.3-1.9-7.1-2.2-11.4z" />
+              <!-- закат Vice City: персик → неоново-розовый → фиолетовый -->
+              <defs><linearGradient id="icon-gta" x1="12" y1="2" x2="12" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#ffc06b" /><stop offset="0.5" stop-color="#ff4f9a" /><stop offset="1" stop-color="#9b5cff" /></linearGradient></defs>
+              <path fill="url(#icon-gta)" d="M12 7.2C10 4.6 6.5 4 4 5.5c2.5.2 4.3 1 5.6 2.4C7 8.2 4.4 9.6 3.5 12.5c2-1.6 4.6-2.6 7.2-2.6zM12 7.2c2-2.6 5.5-3.2 8-1.7-2.5.2-4.3 1-5.6 2.4 2.6.3 5.2 1.7 6.1 4.6-2-1.6-4.6-2.6-7.2-2.6zM11.6 7c-.4-2 .4-3.9 1.9-5.1-.3 1.6-.5 3.3-.1 5zM11 9.6h1.9c.3 4.2 1.2 8 2.6 11.4h-2.3c-1.2-3.3-1.9-7.1-2.2-11.4z" />
             </svg>
             <span>GTA VI</span>
           </button>

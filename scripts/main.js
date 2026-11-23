@@ -1,20 +1,20 @@
-import { ApiError } from './api.js?v=1795421689'
-import { BRANDS } from './brands.js?v=1795421689'
-import { CONFIG } from './config.js?v=1795421689'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795421689'
-import { ensureFreshBuild } from './fresh.js?v=1795421689'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795421689'
-import { createHero, heroGlyph } from './hero.js?v=1795421689'
-import { mixHex } from './hero-math.js?v=1795421689'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795421689'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795421689'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795421689'
-import { readGiftLink } from './gift-link.js?v=1795421689'
-import { hapticError, initTelegram } from './telegram.js?v=1795421689'
-import { setAmount } from './odometer.js?v=1795421689'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795421689'
-import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795421689'
-import { settleDemoOrder } from './mock.js?v=1795421689'
+import { ApiError } from './api.js?v=1795421925'
+import { BRANDS } from './brands.js?v=1795421925'
+import { CONFIG } from './config.js?v=1795421925'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795421925'
+import { ensureFreshBuild } from './fresh.js?v=1795421925'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795421925'
+import { createHero, heroGlyph } from './hero.js?v=1795421925'
+import { mixHex } from './hero-math.js?v=1795421925'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795421925'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795421925'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795421925'
+import { readGiftLink } from './gift-link.js?v=1795421925'
+import { hapticError, initTelegram } from './telegram.js?v=1795421925'
+import { setAmount } from './odometer.js?v=1795421925'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795421925'
+import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795421925'
+import { settleDemoOrder } from './mock.js?v=1795421925'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -31,7 +31,6 @@ const USDT_COLOR = '#1fb5a8'
 const STARS_PRODUCT = 'stars'
 const GRAM_PRODUCT = 'gram'
 const CARDS_PRODUCT = 'cards'
-const GTA_PRODUCT = 'gta'
 const SERVICE_KEY = 'service'
 /** Тёмные фирменные цвета высветляются, чтобы логотип читался на капсуле. */
 const BRAND_ICON_LIFT = 0.25
@@ -232,11 +231,10 @@ const productLook = (productId) => {
   }
 }
 
-/** Сервис, чьи логотипы разлетаются: Steam, выбранная гифт-карта или платформа GTA VI. */
+/** Сервис, чьи логотипы разлетаются: Steam или выбранная гифт-карта (у GTA VI — пальмы с капсулы). */
 const BRAND_OF_PRODUCT = {
   steam: () => 'steam',
   [CARDS_PRODUCT]: () => state.values[SERVICE_KEY],
-  [GTA_PRODUCT]: () => state.optionData.edition?.platform,
 }
 const selectedBrand = () => {
   const brandId = BRAND_OF_PRODUCT[state.product.id]?.() ?? null
