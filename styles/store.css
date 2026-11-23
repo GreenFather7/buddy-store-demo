@@ -1600,7 +1600,8 @@ select.field__input {
   border-radius: var(--radius-pill);
   background: rgb(255 178 36 / 0.12);
   color: var(--color-gold);
-  font-size: var(--text-sm);
+  /* второстепенная строка — чуть мельче, чтобы и на узких телефонах шла целиком */
+  font-size: 0.8125rem;
   font-weight: 600;
   animation: choice-appear 500ms 900ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
@@ -1906,11 +1907,11 @@ p.raffle-sheet__tickets--in {
   color: transparent;
 }
 
-/* Строка о розыгрыше после покупки не звёзд — нажимается и ведёт в раздел звёзд */
+/* Строка о розыгрыше после покупки — нажимается и показывает приз в окне подарка Telegram */
 .status__raffle--link {
   border: 0;
   font: inherit;
-  font-size: var(--text-sm);
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
   transition: background-color var(--duration-fast);
@@ -1919,4 +1920,11 @@ p.raffle-sheet__tickets--in {
 .status__raffle--link:hover,
 .status__raffle--link:focus-visible {
   background: rgb(255 178 36 / 0.2);
+}
+
+/* на самых узких телефонах время розыгрыша скрыто — главное («+N билетов») видно целиком */
+@media (max-width: 340px) {
+  .status__raffle-time {
+    display: none;
+  }
 }

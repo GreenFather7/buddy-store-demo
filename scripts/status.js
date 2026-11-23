@@ -1,14 +1,14 @@
-import { ApiError, request } from './api.js?v=1795435526'
-import { CONFIG } from './config.js?v=1795435526'
-import { BRANDS } from './brands.js?v=1795435526'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795435526'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795435526'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795435526'
-import { createGiftPreview } from './gift-preview.js?v=1795435526'
-import { revealCode, startScramble } from './codefx.js?v=1795435526'
-import { ticketsFor, ticketsWord } from './raffle.js?v=1795435526'
-import { giftLink, validGift } from './gift-link.js?v=1795435526'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795435526'
+import { ApiError, request } from './api.js?v=1795435815'
+import { CONFIG } from './config.js?v=1795435815'
+import { BRANDS } from './brands.js?v=1795435815'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795435815'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795435815'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795435815'
+import { createGiftPreview } from './gift-preview.js?v=1795435815'
+import { revealCode, startScramble } from './codefx.js?v=1795435815'
+import { rafflePrizeLink, ticketsFor, ticketsWord } from './raffle.js?v=1795435815'
+import { giftLink, validGift } from './gift-link.js?v=1795435815'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795435815'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -316,24 +316,41 @@ const failMark = () =>
 // (1 за 50). Покупателю на сайте без Telegram бэкенд билеты не начисляет — ему не обещаем.
 const RAFFLE_TIME = '20:00'
 
-/** Одна строка-плашка под результатом покупки; у не-звёзд нажатие ведёт к покупке звёзд. */
-const raffleLine = (order, onBuyStars) => {
-  if (order.productId !== 'stars') {
-    return el('button', {
-      class: 'status__raffle status__raffle--link',
-      type: 'button',
-      text: '🎟 Билеты в розыгрыш NFT — за звёзды ›',
-      onClick: onBuyStars,
-    })
-  }
+/** Текст плашки: билеты за эту покупку или чем их получить. */
+const raffleText = (order) => {
+  if (order.productId !== 'stars') return '🎟 Билеты в розыгрыш NFT — за звёзды'
+  if (!isInTelegram()) return '🎟 Билеты в розыгрыш NFT — в Telegram'
   const tickets = ticketsFor(order.summary?.amount)
-  if (!isInTelegram()) return el('p', { class: 'status__raffle', text: '🎟 Билеты в розыгрыш NFT — в Telegram' })
-  if (tickets === 0) return el('p', { class: 'status__raffle', text: '🎟 От 50 звёзд — билет в розыгрыш NFT' })
-  return el('p', {
-    class: 'status__raffle',
-    text: `🎟 +${tickets} ${ticketsWord(tickets)} в розыгрыш NFT · в ${RAFFLE_TIME}`,
-  })
+  if (tickets === 0) return '🎟 От 50 звёзд — билет в розыгрыш NFT'
+  return `🎟 +${tickets} ${ticketsWord(tickets)} в розыгрыш NFT`
 }
+
+/** Время розыгрыша — только у строки с начисленными билетами; на самых узких экранах прячется. */
+const hasRaffleTime = (order) => order.productId === 'stars' && isInTelegram() && ticketsFor(order.summary?.amount) > 0
+
+/**
+ * Показывает разыгрываемый NFT в стандартном окне подарка Telegram (ссылка t.me/nft/…):
+ * в мини-приложении Telegram открывает его у себя, на сайте ссылка уходит в Telegram.
+ */
+const openRafflePrize = () => {
+  const link = rafflePrizeLink()
+  const telegram = window.Telegram?.WebApp
+  if (telegram?.openTelegramLink) telegram.openTelegramLink(link)
+  else window.open(link, '_blank', 'noopener')
+}
+
+/** Одна строка-плашка под результатом покупки; нажатие показывает приз розыгрыша. */
+const raffleLine = (order) =>
+  el('button', {
+    class: 'status__raffle status__raffle--link',
+    type: 'button',
+    'aria-label': `${raffleText(order)}. Посмотреть приз розыгрыша`,
+    onClick: openRafflePrize,
+  }, [
+    raffleText(order),
+    hasRaffleTime(order) && el('span', { class: 'status__raffle-time', text: ` · в ${RAFFLE_TIME}` }),
+    ' ›',
+  ])
 
 const VIEW = {
   [ORDER_STATE.PENDING]: pendingView,
@@ -400,14 +417,8 @@ export const showStatus = (container, order, onClose) => {
     if (key === lastKey) return
     lastKey = key
     const isFinal = FINAL_STATES.includes(result.state)
-    // после успешной покупки — строка о розыгрыше NFT; «Купить звёзды» с неё ведёт в раздел звёзд
-    const raffle =
-      result.state === ORDER_STATE.DONE
-        ? raffleLine(order, () => {
-            close()
-            document.dispatchEvent(new CustomEvent('buddy:buy-stars'))
-          })
-        : null
+    // после успешной покупки — строка о розыгрыше NFT; нажатие показывает приз в окне Telegram
+    const raffle = result.state === ORDER_STATE.DONE ? raffleLine(order) : null
     container.replaceChildren(
       ...[
         ...VIEW[result.state](order, result),
