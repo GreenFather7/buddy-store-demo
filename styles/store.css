@@ -1759,3 +1759,8 @@ p.raffle-sheet__tickets--in {
   max-width: none;
   white-space: nowrap;
 }
+
+/* успех — зелёным, как привычная галочка «готово»; золото остаётся цветом бренда и кнопки оплаты */
+.status__mark--done {
+  --mark-color: #30d158;
+}
