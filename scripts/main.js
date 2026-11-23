@@ -343,7 +343,16 @@ const inputField = (field) => {
       if (field.prefix && input.value.startsWith(field.prefix)) input.value = input.value.slice(field.prefix.length)
       setValue(field, input.value)
     },
+    // Количество: при нажатии на поле прежнее число убирается и видна подсказка («1–100»),
+    // можно сразу набирать новое. Ушли, ничего не набрав, — прежнее число возвращается.
+    onFocus: () => {
+      if (!isNumber || !input.value) return
+      input.dataset.previous = input.value
+      input.value = ''
+    },
     onBlur: () => {
+      if (isNumber && input.value === '' && input.dataset.previous) input.value = input.dataset.previous
+      delete input.dataset.previous
       if (input.value && state.values[field.key] === undefined) markInvalid(field, fieldMessage(field, input.value))
     },
   })
