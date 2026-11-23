@@ -3,7 +3,7 @@
 
 import { isTelegramLaunch } from './lib.js'
 
-const SDK_URL = 'https://telegram.org/js/telegram-web-app.js'
+const SDK_URL = 'scripts/vendor/telegram-web-app.js'
 const APP_COLOR = '#151517'
 const FULLSCREEN_MIN_VERSION = '8.0'
 /** На компьютере полноэкранный режим закрывает весь монитор — включаем только на телефонах. */
