@@ -1,5 +1,5 @@
-import { ApiError, request } from './api.js?v=1795435138'
-import { BRANDS } from './brands.js?v=1795435138'
+import { ApiError, request } from './api.js?v=1795435526'
+import { BRANDS } from './brands.js?v=1795435526'
 import {
   ORDER_STATE,
   flagUrl,
@@ -13,7 +13,7 @@ import {
   normalizeUsername,
   parseIntInRange,
   trimDecimals,
-} from './lib.js?v=1795435138'
+} from './lib.js?v=1795435526'
 
 const STARS_MIN = 50
 const STARS_MAX = 5000
@@ -99,7 +99,8 @@ const stars = {
   id: 'stars',
   // цена звёзд зависит только от количества — показываем её, не дожидаясь ника
   quoteKeys: ['amount'],
-  summary: ({ recipient, amount }) => ({ line: `${groupThousands(amount)} ⭐ для @${recipient}` }),
+  // amount — для строки о розыгрыше: 1 билет за 50 звёзд
+  summary: ({ recipient, amount }) => ({ line: `${groupThousands(amount)} ⭐ для @${recipient}`, amount }),
   doneText: 'Звёзды *отправлены*',
   fields: [
     recipientField,

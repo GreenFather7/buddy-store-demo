@@ -1,20 +1,20 @@
-import { ApiError } from './api.js?v=1795435138'
-import { BRANDS } from './brands.js?v=1795435138'
-import { CONFIG } from './config.js?v=1795435138'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795435138'
-import { ensureFreshBuild } from './fresh.js?v=1795435138'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795435138'
-import { createHero, heroGlyph } from './hero.js?v=1795435138'
-import { mixHex } from './hero-math.js?v=1795435138'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795435138'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795435138'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795435138'
-import { readGiftLink } from './gift-link.js?v=1795435138'
-import { hapticError, initTelegram } from './telegram.js?v=1795435138'
-import { setAmount } from './odometer.js?v=1795435138'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795435138'
-import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795435138'
-import { settleDemoOrder } from './mock.js?v=1795435138'
+import { ApiError } from './api.js?v=1795435526'
+import { BRANDS } from './brands.js?v=1795435526'
+import { CONFIG } from './config.js?v=1795435526'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795435526'
+import { ensureFreshBuild } from './fresh.js?v=1795435526'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795435526'
+import { createHero, heroGlyph } from './hero.js?v=1795435526'
+import { mixHex } from './hero-math.js?v=1795435526'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795435526'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795435526'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795435526'
+import { readGiftLink } from './gift-link.js?v=1795435526'
+import { hapticError, initTelegram } from './telegram.js?v=1795435526'
+import { setAmount } from './odometer.js?v=1795435526'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795435526'
+import { addTicketsForStars, mountRaffle } from './raffle.js?v=1795435526'
+import { settleDemoOrder } from './mock.js?v=1795435526'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -639,7 +639,6 @@ const buildFields = () => {
 // Тестовый режим: ник, логин и количество уже заполнены — можно сразу жать «Оплатить»
 // (первые варианты в рядах выбирает optionsField).
 // Ник и логин — публичные тестовые, количество — первый шаблон раздела.
-const IS_RAFFLE_VISIBLE = false
 
 const TEST_VALUES = { recipient: 'durov', account: 'test_login' }
 
@@ -755,11 +754,9 @@ const payInTestMode = async (order) => {
   renderPay()
   if (!outcome) return
   settleDemoOrder(order.ref.orderId, outcome)
-  // билеты розыгрыша — только за выданные звёзды, как в боте
-  const added = outcome === 'success' && order.productId === STARS_PRODUCT ? addTicketsForStars(state.values.amount) : 0
-  // пока розыгрыш скрыт, плашку «+N билетов» на экране успеха не показываем
-  const raffleNote = IS_RAFFLE_VISIBLE && added > 0 ? `+${added} ${ticketsWord(added)} в розыгрыш NFT` : null
-  openStatus({ ...order, testOutcome: outcome, raffleNote })
+  // билеты розыгрыша — только за выданные звёзды, как в боте (строку о них рисует экран статуса)
+  if (outcome === 'success' && order.productId === STARS_PRODUCT) addTicketsForStars(state.values.amount)
+  openStatus({ ...order, testOutcome: outcome })
 }
 
 const submit = async (event) => {
@@ -834,6 +831,8 @@ const init = () => {
     }
   })
   form.addEventListener('submit', submit)
+  // строка о розыгрыше после покупки (не звёзд) ведёт в раздел звёзд — билеты дают за них
+  document.addEventListener('buddy:buy-stars', () => selectProduct(STARS_PRODUCT))
   if (CONFIG.demo) {
     mountBalance(noteEl)
     // розыгрыш NFT пока скрыт с главного экрана (готовый модуль — raffle.js); вернуть — раскомментировать

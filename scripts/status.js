@@ -1,13 +1,14 @@
-import { ApiError, request } from './api.js?v=1795435138'
-import { CONFIG } from './config.js?v=1795435138'
-import { BRANDS } from './brands.js?v=1795435138'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795435138'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795435138'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795435138'
-import { createGiftPreview } from './gift-preview.js?v=1795435138'
-import { revealCode, startScramble } from './codefx.js?v=1795435138'
-import { giftLink, validGift } from './gift-link.js?v=1795435138'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795435138'
+import { ApiError, request } from './api.js?v=1795435526'
+import { CONFIG } from './config.js?v=1795435526'
+import { BRANDS } from './brands.js?v=1795435526'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795435526'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795435526'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795435526'
+import { createGiftPreview } from './gift-preview.js?v=1795435526'
+import { revealCode, startScramble } from './codefx.js?v=1795435526'
+import { ticketsFor, ticketsWord } from './raffle.js?v=1795435526'
+import { giftLink, validGift } from './gift-link.js?v=1795435526'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795435526'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -310,6 +311,30 @@ const failMark = () =>
     ]),
   ])
 
+// ── Розыгрыш NFT после покупки ───────────────────────────────────────
+// Как в боте звёзд: каждый день в 20:00 (МСК) разыгрывается NFT-подарок, билеты — только за звёзды
+// (1 за 50). Покупателю на сайте без Telegram бэкенд билеты не начисляет — ему не обещаем.
+const RAFFLE_TIME = '20:00'
+
+/** Одна строка-плашка под результатом покупки; у не-звёзд нажатие ведёт к покупке звёзд. */
+const raffleLine = (order, onBuyStars) => {
+  if (order.productId !== 'stars') {
+    return el('button', {
+      class: 'status__raffle status__raffle--link',
+      type: 'button',
+      text: '🎟 Билеты в розыгрыш NFT — за звёзды ›',
+      onClick: onBuyStars,
+    })
+  }
+  const tickets = ticketsFor(order.summary?.amount)
+  if (!isInTelegram()) return el('p', { class: 'status__raffle', text: '🎟 Билеты в розыгрыш NFT — в Telegram' })
+  if (tickets === 0) return el('p', { class: 'status__raffle', text: '🎟 От 50 звёзд — билет в розыгрыш NFT' })
+  return el('p', {
+    class: 'status__raffle',
+    text: `🎟 +${tickets} ${ticketsWord(tickets)} в розыгрыш NFT · в ${RAFFLE_TIME}`,
+  })
+}
+
 const VIEW = {
   [ORDER_STATE.PENDING]: pendingView,
   [ORDER_STATE.PAID]: (order) =>
@@ -329,7 +354,6 @@ const VIEW = {
       successMark(order),
       statusTitle(PRODUCTS[order.productId].doneText),
       order.summary?.line && el('p', { class: 'status__text' }, textWithIcons(order.summary.line)),
-      order.raffleNote && el('p', { class: 'status__raffle', text: `🎟 ${order.raffleNote}` }),
       ...(result.codes ?? []).flatMap((code) => [
         el('code', { class: 'status__code', text: code }),
         copyButton('Скопировать код', code),
@@ -376,14 +400,25 @@ export const showStatus = (container, order, onClose) => {
     if (key === lastKey) return
     lastKey = key
     const isFinal = FINAL_STATES.includes(result.state)
+    // после успешной покупки — строка о розыгрыше NFT; «Купить звёзды» с неё ведёт в раздел звёзд
+    const raffle =
+      result.state === ORDER_STATE.DONE
+        ? raffleLine(order, () => {
+            close()
+            document.dispatchEvent(new CustomEvent('buddy:buy-stars'))
+          })
+        : null
     container.replaceChildren(
-      ...VIEW[result.state](order, result).filter(Boolean),
-      el('button', {
-        class: 'btn btn--ghost',
-        type: 'button',
-        text: isFinal ? 'Новая покупка' : 'Отменить и вернуться',
-        onClick: close,
-      }),
+      ...[
+        ...VIEW[result.state](order, result),
+        raffle,
+        el('button', {
+          class: 'btn btn--ghost',
+          type: 'button',
+          text: isFinal ? 'Новая покупка' : 'Отменить и вернуться',
+          onClick: close,
+        }),
+      ].filter(Boolean),
     )
   }
 

@@ -1591,6 +1591,11 @@ select.field__input {
 }
 
 .status__raffle {
+  /* всегда одна строка — экран не растёт и не прыгает */
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   padding: 0.375rem 0.875rem;
   border-radius: var(--radius-pill);
   background: rgb(255 178 36 / 0.12);
@@ -1899,4 +1904,19 @@ p.raffle-sheet__tickets--in {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* Строка о розыгрыше после покупки не звёзд — нажимается и ведёт в раздел звёзд */
+.status__raffle--link {
+  border: 0;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--duration-fast);
+}
+
+.status__raffle--link:hover,
+.status__raffle--link:focus-visible {
+  background: rgb(255 178 36 / 0.2);
 }
