@@ -30,6 +30,11 @@ const setUp = () => {
 
 export const initTelegram = () => {
   if (!isTelegramLaunch(window.location.hash)) return
+  // Обычно скрипт Telegram уже подключён из <head> (tg-boot.js) — разворачиваемся сразу.
+  if (window.Telegram?.WebApp) {
+    setUp()
+    return
+  }
   const script = document.createElement('script')
   script.src = SDK_URL
   script.addEventListener('load', setUp)
