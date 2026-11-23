@@ -1,15 +1,15 @@
-import { ApiError, request } from './api.js?v=1795439832'
-import { CONFIG } from './config.js?v=1795439832'
-import { BRANDS } from './brands.js?v=1795439832'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795439832'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795439832'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795439832'
-import { createGiftPreview } from './gift-preview.js?v=1795439832'
-import { revealCode, startScramble } from './codefx.js?v=1795439832'
-import { RAFFLE_MIN_TICKETS, rafflePrizeLink, ticketsFor } from './raffle.js?v=1795439832'
-import { mixHex } from './hero-math.js?v=1795439832'
-import { giftLink, validGift } from './gift-link.js?v=1795439832'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795439832'
+import { ApiError, request } from './api.js?v=1795440520'
+import { CONFIG } from './config.js?v=1795440520'
+import { BRANDS } from './brands.js?v=1795440520'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795440520'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795440520'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795440520'
+import { createGiftPreview } from './gift-preview.js?v=1795440520'
+import { revealCode, startScramble } from './codefx.js?v=1795440520'
+import { RAFFLE_MIN_TICKETS, rafflePrizeImage, rafflePrizeLink, ticketsFor, ticketsWord } from './raffle.js?v=1795440520'
+import { mixHex } from './hero-math.js?v=1795440520'
+import { giftLink, validGift } from './gift-link.js?v=1795440520'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795440520'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -355,18 +355,19 @@ const RAFFLE_TIME = '20:00'
 
 /** Текст плашки: билеты за эту покупку или чем их получить. */
 /**
- * Текст плашки — простыми словами, что происходит: идёт розыгрыш NFT-подарка и участвует ли человек.
- * Сам подарок видно по нажатию. Как в боте: участвуют от 3 билетов за день, 1 билет за 50 звёзд.
+ * Вторая строка розыгрыша — участвует ли человек. Как в боте: 1 билет за 50 звёзд,
+ * в розыгрыше — от 3 билетов за день. Число билетов выделено золотом.
  */
-const raffleText = (order) => {
-  if (order.productId !== 'stars') return '🎁 Розыгрыш NFT'
-  if (!isInTelegram()) return '🎁 Розыгрыш NFT — в Telegram'
+const raffleStatus = (order) => {
+  if (order.productId !== 'stars') return ['Билеты — за звёзды']
+  if (!isInTelegram()) return ['Участие — в Telegram']
   const tickets = ticketsFor(order.summary?.amount)
-  if (tickets === 0) return '🎁 Розыгрыш NFT · от 50 ⭐'
+  if (tickets === 0) return ['Билет — от 50 звёзд']
   const missing = RAFFLE_MIN_TICKETS - tickets
-  if (missing > 0) return `🎁 Ещё ${missing} 🎟 — и вы в розыгрыше NFT`
-  return `🎁 Вы в розыгрыше NFT · ${tickets} 🎟`
+  if (missing > 0) return ['Ещё ', strong(`${missing} ${ticketsWord(missing)}`), ' до участия']
+  return ['Вы участвуете · ', strong(`${tickets} ${ticketsWord(tickets)}`)]
 }
+const strong = (text) => el('strong', { text })
 
 /**
  * Показывает разыгрываемый NFT в стандартном окне подарка Telegram (ссылка t.me/nft/…):
@@ -379,14 +380,30 @@ const openRafflePrize = () => {
   else window.open(link, '_blank', 'noopener')
 }
 
-/** Одна строка-плашка под результатом покупки; нажатие показывает приз розыгрыша. */
-const raffleLine = (order) =>
-  el('button', {
-    class: 'status__raffle status__raffle--link',
-    type: 'button',
-    'aria-label': `${raffleText(order)}. Розыгрыш каждый день в ${RAFFLE_TIME}. Посмотреть подарок`,
-    onClick: openRafflePrize,
-  }, [`${raffleText(order)} ›`])
+/**
+ * Розыгрыш после покупки — аккуратной строкой, как в списках Telegram: слева картинка подарка,
+ * две строки текста, справа — «+1 за друга» (или стрелка). Нажатие показывает подарок.
+ */
+const raffleRow = (order) => {
+  const invite = inviteButton()
+  const title = `Розыгрыш NFT · в ${RAFFLE_TIME}`
+  return el('div', { class: 'raffle-row' }, [
+    el('button', {
+      class: 'raffle-row__main',
+      type: 'button',
+      'aria-label': `${title}. Посмотреть подарок`,
+      onClick: openRafflePrize,
+    }, [
+      el('img', { class: 'raffle-row__image', src: rafflePrizeImage(), alt: '', width: '40', height: '40' }),
+      el('span', { class: 'raffle-row__text' }, [
+        el('span', { class: 'raffle-row__title', text: title }),
+        el('span', { class: 'raffle-row__status' }, raffleStatus(order)),
+      ]),
+      !invite && el('span', { class: 'raffle-row__chevron', 'aria-hidden': 'true', text: '›' }),
+    ]),
+    invite,
+  ])
+}
 
 const VIEW = {
   [ORDER_STATE.PENDING]: pendingView,
@@ -450,9 +467,9 @@ const inviteButton = () => {
   if (!link || !telegram?.openTelegramLink) return null
   return el('button', {
     // маленькая кнопка внутри золотой плашки розыгрыша: это про билеты, а не про карту
-    class: 'status__invite',
+    class: 'raffle-row__invite',
     type: 'button',
-    text: 'Позвать +1 🎟',
+    text: '+1 за друга',
     'aria-label': 'Пригласить друга — плюс один билет в розыгрыш',
     onClick: () => {
       const params = new URLSearchParams({ url: link, text: INVITE_TEXT })
@@ -508,7 +525,7 @@ const swapHeading = (previous, next) => {
 
 /** Кнопки и плашка появляются по очереди, мягко всплывая (порядок — в --rise-index). */
 const riseIn = (container) => {
-  container.querySelectorAll(':scope > .btn, .status__raffle-block, .status__links').forEach((node, index) => {
+  container.querySelectorAll(':scope > .btn, .raffle-row, .status__links').forEach((node, index) => {
     node.classList.add('status__rise')
     node.style.setProperty('--rise-index', String(index))
   })
@@ -560,11 +577,8 @@ export const showStatus = (container, order, onClose) => {
     // «Подарить карту» уходит из середины экрана вниз — в строку тихих ссылок
     const gift = viewItems.find((node) => node.dataset?.role === 'gift') ?? null
     const items = viewItems.filter((node) => node !== gift)
-    // После успешной покупки — одна золотая плашка: что с розыгрышем (нажатие показывает подарок)
-    // и маленькая кнопка «Позвать +1 🎟». Отдельных больших кнопок под это нет.
-    const raffleBlock = isDone
-      ? el('div', { class: 'status__raffle-block' }, [raffleLine(order), inviteButton()].filter(Boolean))
-      : null
+    // После успешной покупки — строка розыгрыша: картинка подарка, участвует ли человек, «+1 за друга».
+    const raffleBlock = isDone ? raffleRow(order) : null
     const previousHeading = headingOf(container)
     const links = el('div', { class: 'status__links' }, [
       gift,
