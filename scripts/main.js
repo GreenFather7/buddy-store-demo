@@ -1,20 +1,20 @@
-import { ApiError } from './api.js?v=1795420778'
-import { BRANDS } from './brands.js?v=1795420778'
-import { CONFIG } from './config.js?v=1795420778'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795420778'
-import { ensureFreshBuild } from './fresh.js?v=1795420778'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795420778'
-import { createHero, heroGlyph } from './hero.js?v=1795420778'
-import { mixHex } from './hero-math.js?v=1795420778'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795420778'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795420778'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795420778'
-import { readGiftLink } from './gift-link.js?v=1795420778'
-import { hapticError, initTelegram } from './telegram.js?v=1795420778'
-import { setAmount } from './odometer.js?v=1795420778'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795420778'
-import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795420778'
-import { settleDemoOrder } from './mock.js?v=1795420778'
+import { ApiError } from './api.js?v=1795421059'
+import { BRANDS } from './brands.js?v=1795421059'
+import { CONFIG } from './config.js?v=1795421059'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795421059'
+import { ensureFreshBuild } from './fresh.js?v=1795421059'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795421059'
+import { createHero, heroGlyph } from './hero.js?v=1795421059'
+import { mixHex } from './hero-math.js?v=1795421059'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795421059'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795421059'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795421059'
+import { readGiftLink } from './gift-link.js?v=1795421059'
+import { hapticError, initTelegram } from './telegram.js?v=1795421059'
+import { setAmount } from './odometer.js?v=1795421059'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795421059'
+import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795421059'
+import { settleDemoOrder } from './mock.js?v=1795421059'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -124,12 +124,17 @@ const updateSubmit = () => {
     })
     return
   }
-  const isWaiting = hint ? pendingOptionLoads > 0 : !amount || quotedSignature !== priceSignature()
+  // Цена посчитана, но суммы в этой валюте заранее нет (гифт-карта в USDT — «по курсу»,
+  // бэкенд считает её при заказе): это не «ждём», а «Оплатить в USDT» без суммы.
+  const isPriceByRate = Boolean(state.quote) && !amount
+  const isWaiting = hint ? pendingOptionLoads > 0 : (!amount && !isPriceByRate) || quotedSignature !== priceSignature()
   const isTyping = isWaiting && isSameProduct
   ;[amountEl, wordEl, noteEl].forEach((node) => node.classList.toggle('pay-amount--stale', isTyping))
   if (isTyping) return
+  const payWord = state.product.payWord || PAY_WORD
   // пока варианты грузятся, подсказку не показываем — только обычное слово раздела
-  const word = (pendingOptionLoads === 0 && hint) || state.product.payWord || PAY_WORD
+  const word =
+    (pendingOptionLoads === 0 && hint) || (isPriceByRate ? `${payWord} в ${METHOD_LABEL[state.method]}` : payWord)
   if (wordEl.textContent !== word) wordEl.textContent = word
   renderPayNote(hint ? null : (state.product.payNote?.(state.values, state.optionData) ?? null))
   const shownAmount = hint ? '' : amount
