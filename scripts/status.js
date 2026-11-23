@@ -1,14 +1,15 @@
-import { ApiError, request } from './api.js?v=1795435815'
-import { CONFIG } from './config.js?v=1795435815'
-import { BRANDS } from './brands.js?v=1795435815'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795435815'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795435815'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795435815'
-import { createGiftPreview } from './gift-preview.js?v=1795435815'
-import { revealCode, startScramble } from './codefx.js?v=1795435815'
-import { rafflePrizeLink, ticketsFor, ticketsWord } from './raffle.js?v=1795435815'
-import { giftLink, validGift } from './gift-link.js?v=1795435815'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795435815'
+import { ApiError, request } from './api.js?v=1795436371'
+import { CONFIG } from './config.js?v=1795436371'
+import { BRANDS } from './brands.js?v=1795436371'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795436371'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795436371'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795436371'
+import { createGiftPreview } from './gift-preview.js?v=1795436371'
+import { revealCode, startScramble } from './codefx.js?v=1795436371'
+import { RAFFLE_MIN_TICKETS, rafflePrizeLink, rafflePrizeName, ticketsFor, ticketsWord } from './raffle.js?v=1795436371'
+import { mixHex } from './hero-math.js?v=1795436371'
+import { giftLink, validGift } from './gift-link.js?v=1795436371'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795436371'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -317,16 +318,19 @@ const failMark = () =>
 const RAFFLE_TIME = '20:00'
 
 /** Текст плашки: билеты за эту покупку или чем их получить. */
+/**
+ * Текст плашки: человек видит, какой подарок разыгрывается и что он в нём участвует.
+ * Как в боте: участвуют от 3 билетов за день, меньше — билеты копятся к розыгрышу.
+ */
 const raffleText = (order) => {
-  if (order.productId !== 'stars') return '🎟 Билеты в розыгрыш NFT — за звёзды'
-  if (!isInTelegram()) return '🎟 Билеты в розыгрыш NFT — в Telegram'
+  const prize = rafflePrizeName()
+  if (order.productId !== 'stars') return `🎟 Билеты на ${prize} — за звёзды`
+  if (!isInTelegram()) return `🎟 Билеты на ${prize} — в Telegram`
   const tickets = ticketsFor(order.summary?.amount)
-  if (tickets === 0) return '🎟 От 50 звёзд — билет в розыгрыш NFT'
-  return `🎟 +${tickets} ${ticketsWord(tickets)} в розыгрыш NFT`
+  if (tickets === 0) return `🎟 Билет на ${prize} — от 50 звёзд`
+  if (tickets < RAFFLE_MIN_TICKETS) return `🎟 +${tickets} ${ticketsWord(tickets)} к розыгрышу ${prize}`
+  return `🎟 Вы в розыгрыше ${prize} · +${tickets} ${ticketsWord(tickets)}`
 }
-
-/** Время розыгрыша — только у строки с начисленными билетами; на самых узких экранах прячется. */
-const hasRaffleTime = (order) => order.productId === 'stars' && isInTelegram() && ticketsFor(order.summary?.amount) > 0
 
 /**
  * Показывает разыгрываемый NFT в стандартном окне подарка Telegram (ссылка t.me/nft/…):
@@ -344,13 +348,9 @@ const raffleLine = (order) =>
   el('button', {
     class: 'status__raffle status__raffle--link',
     type: 'button',
-    'aria-label': `${raffleText(order)}. Посмотреть приз розыгрыша`,
+    'aria-label': `${raffleText(order)}. Розыгрыш каждый день в ${RAFFLE_TIME}. Посмотреть подарок`,
     onClick: openRafflePrize,
-  }, [
-    raffleText(order),
-    hasRaffleTime(order) && el('span', { class: 'status__raffle-time', text: ` · в ${RAFFLE_TIME}` }),
-    ' ›',
-  ])
+  }, [`${raffleText(order)} ›`])
 
 const VIEW = {
   [ORDER_STATE.PENDING]: pendingView,
@@ -397,7 +397,75 @@ const VIEW = {
  * @param {object} order сохранённый заказ
  * @param {() => void} onClose вернуться к форме
  */
+// ── Приглашение друга: +1 билет в розыгрыш ───────────────────────────
+// Как в боте звёзд: ссылка stars.buddygpt.ru/ref_<id в Telegram>; друг открывает мини-приложение
+// по ней, бэкенд регистрирует приглашение (/api/set_referral) и даёт пригласившему билет.
+// Только в Telegram: свой id мини-приложению сообщает Telegram, у гостя сайта его нет.
+const INVITE_TEXT = 'Покупаю звёзды, Premium и Gift-карты в Buddy — заходи 👇'
+
+const inviteLink = () => {
+  const id = window.Telegram?.WebApp?.initDataUnsafe?.user?.id
+  return Number.isSafeInteger(id) && id > 0 ? `${CONFIG.starsApi}/ref_${id}` : null
+}
+
+const inviteButton = () => {
+  const link = inviteLink()
+  const telegram = window.Telegram?.WebApp
+  if (!link || !telegram?.openTelegramLink) return null
+  return el('button', {
+    class: 'btn btn--ghost',
+    type: 'button',
+    text: 'Пригласить друга · +1 билет',
+    onClick: () => {
+      const params = new URLSearchParams({ url: link, text: INVITE_TEXT })
+      telegram.openTelegramLink(`https://t.me/share/url?${params}`)
+    },
+  })
+}
+
+/** Заголовок экрана карты — две строки (cardHeading): после них встаёт плашка розыгрыша. */
+const CARD_HEADING_SIZE = 2
+
+/** Невидимая копия плашки: держит её место, пока код выпускается. */
+const rafflePlaceholder = (order) => {
+  const placeholder = raffleLine(order)
+  placeholder.classList.add('status__raffle--placeholder')
+  placeholder.disabled = true
+  placeholder.setAttribute('aria-hidden', 'true')
+  placeholder.tabIndex = -1
+  return placeholder
+}
+
+/** Кнопки и плашка появляются по очереди, мягко всплывая (порядок — в --rise-index). */
+const riseIn = (container) => {
+  container.querySelectorAll('.btn, .status__raffle:not(.status__raffle--placeholder)').forEach((node, index) => {
+    node.classList.add('status__rise')
+    node.style.setProperty('--rise-index', String(index))
+  })
+}
+
+/** Цвет экрана после покупки: у Gift-карт — цвет сервиса, у остальных — цвет раздела. */
+const statusAccent = (order) => {
+  const brand = BRANDS[String(order.summary?.brand ?? '')]
+  if (isVoucherOrder(order) && brand) return brand.to
+  const capsule = document.querySelector(`.product[data-product="${order.productId}"]`)
+  const color = capsule ? getComputedStyle(capsule).getPropertyValue('--product-color').trim() : ''
+  return /^#[0-9a-f]{6}$/i.test(color) ? color : DEFAULT_ACCENT
+}
+const DEFAULT_ACCENT = '#ffb224'
+/** Фон кнопок (--color-surface-2) и доля фона в оттенке: чем больше, тем спокойнее цвет. */
+const SURFACE = '#0a0a0c'
+const BUTTON_TINT = 0.86
+const BUTTON_TINT_HOVER = 0.76
+const RING_TINT = 0.6
+
 export const showStatus = (container, order, onClose) => {
+  // кнопки экрана — с оттенком цвета сервиса или раздела, цвета готовые (см. стили .status .btn--ghost)
+  const accent = statusAccent(order)
+  container.style.setProperty('--status-accent', accent)
+  container.style.setProperty('--status-button', mixHex(accent, SURFACE, BUTTON_TINT))
+  container.style.setProperty('--status-button-hover', mixHex(accent, SURFACE, BUTTON_TINT_HOVER))
+  container.style.setProperty('--status-ring', mixHex(accent, SURFACE, RING_TINT))
   let timer = 0
   let isClosed = false
   let lastKey = ''
@@ -417,12 +485,21 @@ export const showStatus = (container, order, onClose) => {
     if (key === lastKey) return
     lastKey = key
     const isFinal = FINAL_STATES.includes(result.state)
+    const isDone = result.state === ORDER_STATE.DONE
+    const items = VIEW[result.state](order, result).filter(Boolean)
     // после успешной покупки — строка о розыгрыше NFT; нажатие показывает приз в окне Telegram
-    const raffle = result.state === ORDER_STATE.DONE ? raffleLine(order) : null
+    const raffle = isDone ? raffleLine(order) : null
+    const isCardScreen = isVoucherOrder(order) && result.state !== ORDER_STATE.FAILED
+    if (isCardScreen) {
+      // у Gift-карт плашка — сразу под заголовком, над картой. Место под неё занято с самого начала
+      // (пока код выпускается — невидимой копией), иначе карта съехала бы вниз, когда код готов.
+      items.splice(CARD_HEADING_SIZE, 0, raffle ?? rafflePlaceholder(order))
+    }
     container.replaceChildren(
       ...[
-        ...VIEW[result.state](order, result),
-        raffle,
+        ...items,
+        !isCardScreen && raffle,
+        isDone && inviteButton(),
         el('button', {
           class: 'btn btn--ghost',
           type: 'button',
@@ -431,6 +508,7 @@ export const showStatus = (container, order, onClose) => {
         }),
       ].filter(Boolean),
     )
+    riseIn(container)
   }
 
   const poll = async () => {

@@ -1,5 +1,6 @@
-import { ApiError, request } from './api.js?v=1795435815'
-import { BRANDS } from './brands.js?v=1795435815'
+import { ApiError, request } from './api.js?v=1795436371'
+import { CONFIG } from './config.js?v=1795436371'
+import { BRANDS } from './brands.js?v=1795436371'
 import {
   ORDER_STATE,
   flagUrl,
@@ -13,7 +14,7 @@ import {
   normalizeUsername,
   parseIntInRange,
   trimDecimals,
-} from './lib.js?v=1795435815'
+} from './lib.js?v=1795436371'
 
 const STARS_MIN = 50
 const STARS_MAX = 5000
@@ -43,6 +44,9 @@ const recipientField = {
   autocomplete: 'username',
   validate: (value) => (isValidUsername(value) ? null : 'Введите username из Telegram'),
 }
+
+/** Ссылка на канал (в тестовом режиме — заглушка, чтобы было видно строку). */
+const channelLink = () => CONFIG.channelUrl || (CONFIG.demo ? 'https://t.me/telegram' : '')
 
 const prices = ({ rub, ton, usdt }) => ({
   sbp: rub ? formatRub(rub) : null,
@@ -117,7 +121,14 @@ const stars = {
   ],
   async quote({ amount }) {
     const price = await request('stars', '/api/star_price', { query: { stars: amount } })
-    return prices({ rub: price.total_rub, ton: price.total_ton, usdt: price.total_usdt })
+    // подписчикам канала бэкенд считает цену ниже — это видно в строке под кнопкой
+    return { ...prices({ rub: price.total_rub, ton: price.total_ton, usdt: price.total_usdt }), isSubscriber: price.is_subscriber === true }
+  },
+  // «Цена для подписчиков канала» или «Подписчикам канала — дешевле ›» со ссылкой на канал
+  payNote: (_values, _options, quote) => {
+    if (!quote) return null
+    if (quote.isSubscriber) return { text: '🔔 Цена для подписчиков канала' }
+    return channelLink() ? { text: '🔔 Подписчикам канала — дешевле ›', link: channelLink() } : null
   },
   ...starsCheckout({
     invoicePath: '/api/create_invoice',

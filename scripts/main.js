@@ -1,20 +1,20 @@
-import { ApiError } from './api.js?v=1795435815'
-import { BRANDS } from './brands.js?v=1795435815'
-import { CONFIG } from './config.js?v=1795435815'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795435815'
-import { ensureFreshBuild } from './fresh.js?v=1795435815'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795435815'
-import { createHero, heroGlyph } from './hero.js?v=1795435815'
-import { mixHex } from './hero-math.js?v=1795435815'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795435815'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795435815'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795435815'
-import { readGiftLink } from './gift-link.js?v=1795435815'
-import { hapticError, initTelegram } from './telegram.js?v=1795435815'
-import { setAmount } from './odometer.js?v=1795435815'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795435815'
-import { addTicketsForStars, mountRaffle } from './raffle.js?v=1795435815'
-import { settleDemoOrder } from './mock.js?v=1795435815'
+import { ApiError } from './api.js?v=1795436371'
+import { BRANDS } from './brands.js?v=1795436371'
+import { CONFIG } from './config.js?v=1795436371'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795436371'
+import { ensureFreshBuild } from './fresh.js?v=1795436371'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795436371'
+import { createHero, heroGlyph } from './hero.js?v=1795436371'
+import { mixHex } from './hero-math.js?v=1795436371'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795436371'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795436371'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795436371'
+import { readGiftLink } from './gift-link.js?v=1795436371'
+import { hapticError, initTelegram } from './telegram.js?v=1795436371'
+import { setAmount } from './odometer.js?v=1795436371'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795436371'
+import { addTicketsForStars, mountRaffle } from './raffle.js?v=1795436371'
+import { settleDemoOrder } from './mock.js?v=1795436371'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -136,7 +136,7 @@ const updateSubmit = () => {
   const word =
     (pendingOptionLoads === 0 && hint) || (isPriceByRate ? `${payWord} в ${METHOD_LABEL[state.method]}` : payWord)
   if (wordEl.textContent !== word) wordEl.textContent = word
-  renderPayNote(hint ? null : (state.product.payNote?.(state.values, state.optionData) ?? null))
+  renderPayNote(hint ? null : (state.product.payNote?.(state.values, state.optionData, state.quote) ?? null))
   const shownAmount = hint ? '' : amount
   setAmount(amountEl, shownAmount, isAnimated && hadAmount)
   amountEl.dataset.forProduct = state.product.id
@@ -154,10 +154,14 @@ const updateSubmit = () => {
  * Перерисовывается только при смене текста — флаг не мигает.
  */
 const renderPayNote = (note) => {
-  const key = note ? `${note.flag ?? ''}|${note.text}` : ''
+  const key = note ? `${note.flag ?? ''}|${note.text}|${note.link ?? ''}` : ''
   if (noteEl.dataset.key === key) return
   noteEl.dataset.key = key
-  noteEl.replaceChildren(...(note ? [note.flag ? flagImage(note.flag) : '', note.text] : []))
+  // строка со ссылкой (канал) открывается в Telegram, в мини-приложении — его же средствами
+  const text = note?.link && isSafeLink(note.link)
+    ? el('a', { class: 'order__note-link', href: note.link, target: '_blank', rel: 'noopener', text: note.text, onClick: openInTelegram })
+    : note?.text
+  noteEl.replaceChildren(...(note ? [note.flag ? flagImage(note.flag) : '', text] : []))
   // новая строка мягко проявляется с лёгким подъёмом — видно, что выбор изменился
   if (note && !prefersLessMotion.matches) {
     noteEl.animate(NOTE_IN, { duration: NOTE_IN_MS, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' })
@@ -169,6 +173,29 @@ const NOTE_IN = [
   { opacity: 1, transform: 'none', filter: 'none' },
 ]
 const NOTE_IN_MS = 360
+
+/** Ссылки t.me внутри мини-приложения открывает сам Telegram. */
+const openInTelegram = (event) => {
+  const telegram = window.Telegram?.WebApp
+  if (!telegram?.openTelegramLink) return
+  event.preventDefault()
+  telegram.openTelegramLink(event.currentTarget.href)
+}
+
+/**
+ * Цвет раздела и готовые оттенки обводки выбранного варианта. Оттенки считаем здесь, а не через
+ * color-mix в стилях: старые браузеры (Chrome 111, встроенные браузеры старых Android) рисуют
+ * смешанный цвет внутри обводки белым.
+ */
+const SECTION_SURFACE = '#0a0a0c'
+const RING_SOFT = 0.55
+const RING_STRONG = 0.4
+const setSectionColor = (color) => {
+  root.style.setProperty('--section-color', color)
+  if (!/^#[0-9a-f]{6}$/i.test(color)) return
+  root.style.setProperty('--section-ring', mixHex(color, SECTION_SURFACE, RING_SOFT))
+  root.style.setProperty('--section-ring-strong', mixHex(color, SECTION_SURFACE, RING_STRONG))
+}
 
 /** Надпись не переносится: если на узком телефоне не влезает, кегль на кнопке чуть меньше. */
 const fitSubmitLabel = () => {
@@ -676,7 +703,7 @@ const selectProduct = (productId, service) => {
   // Строка разделов листается: выбранная капсула должна быть видна целиком.
   if (active) centerCapsule(active)
   // цвет раздела — для тихой подсветки выбранных вариантов в форме (стили — --section-color)
-  if (active) root.style.setProperty('--section-color', getComputedStyle(active).getPropertyValue('--product-color').trim())
+  if (active) setSectionColor(getComputedStyle(active).getPropertyValue('--product-color').trim())
   showError(null)
   if (isSameForm) {
     // Гифт-карты: другой сервис — та же форма. Ряды не пересоздаются, а перезагружаются на месте:

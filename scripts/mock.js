@@ -2,7 +2,7 @@
 // Исход заказа выбирают в окне тестовой оплаты (settleDemoOrder): успех, отказ платежа,
 // ошибка выдачи или задержка. В боевом режиме не используется.
 
-import { ApiError } from './api.js?v=1795435815'
+import { ApiError } from './api.js?v=1795436371'
 
 /** Сколько заказ «отправляется» после оплаты, прежде чем показать итог. */
 const DELIVERY_MS = 1800
@@ -15,6 +15,8 @@ const NETWORK_DELAY_MS = 250
 const RUB_PER_STAR = 1.75
 const RUB_PER_USDT = 90
 const RUB_PER_TON = 250
+const IS_DEMO_SUBSCRIBER = new URLSearchParams(window.location.search).has('sub')
+const SUBSCRIBER_PRICE = 0.9
 
 const orders = new Map()
 let nextOrderId = 1000000001
@@ -112,7 +114,12 @@ const ROUTES = {
   'stars POST /api/web/session': () => ({ token: 'demo', expires_in: 86400 }),
   'cards POST /api/web/session': () => ({ token: 'demo', expires_in: 86400 }),
 
-  'stars GET /api/star_price': ({ query }) => ({ stars_amount: query.stars, ...money(query.stars * RUB_PER_STAR) }),
+  // ?demo=1&sub=1 — как будто покупатель подписан на канал: цена на 10% ниже
+  'stars GET /api/star_price': ({ query }) => ({
+    stars_amount: query.stars,
+    ...money(query.stars * RUB_PER_STAR * (IS_DEMO_SUBSCRIBER ? SUBSCRIBER_PRICE : 1)),
+    is_subscriber: IS_DEMO_SUBSCRIBER,
+  }),
   'stars POST /api/create_invoice': starsInvoice,
   'stars POST /api/ton_intent': ({ body }) => tonIntent('stars', body.stars_amount * RUB_PER_STAR),
 
