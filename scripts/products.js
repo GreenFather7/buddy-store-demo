@@ -173,7 +173,7 @@ const premium = {
 const gram = {
   id: 'gram',
   // бэкенд считает цену через Fragment для конкретного получателя — без ника цены нет
-  summary: ({ recipient, amount }) => ({ line: `${groupThousands(amount)} Gram для @${recipient}` }),
+  summary: ({ recipient, amount }) => ({ line: `${groupThousands(amount)} 💎 для @${recipient}` }),
   doneText: 'Gram отправлен',
   fields: [
     recipientField,

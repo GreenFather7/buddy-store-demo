@@ -86,3 +86,21 @@ export const copyText = async (text) => {
     return false // нет доступа к буферу — текст всё равно выделяется нажатием
   }
 }
+
+/** Знаки в тексте, которые заменяются фирменными значками (звезда Telegram с разрезом и кристалл Gram). */
+const INLINE_ICONS = {
+  '⭐': 'assets/presets/stars-1.svg',
+  '💎': 'assets/presets/gram-1.svg',
+}
+const INLINE_ICON_PATTERN = new RegExp(`(${Object.keys(INLINE_ICONS).join('|')})`, 'u')
+
+/** Текст, где эмодзи ⭐ и 💎 стоят фирменными значками, а не системными эмодзи. */
+export const textWithIcons = (text) =>
+  String(text)
+    .split(INLINE_ICON_PATTERN)
+    .filter(Boolean)
+    .map((part) =>
+      INLINE_ICONS[part]
+        ? el('img', { class: 'inline-icon', src: INLINE_ICONS[part], alt: part, width: '18', height: '18' })
+        : part,
+    )

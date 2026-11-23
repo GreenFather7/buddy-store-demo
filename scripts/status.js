@@ -1,7 +1,7 @@
 import { ApiError } from './api.js'
 import { CONFIG } from './config.js'
 import { BRANDS } from './brands.js'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl } from './dom.js'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js'
 import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js'
 import { PRODUCTS, checkOrder } from './products.js'
 import { createGiftPreview } from './gift-preview.js'
@@ -187,7 +187,7 @@ const VIEW = {
     codeCard(order, result.codes ?? []) ?? [
       successMark(order),
       el('p', { class: 'status__title', text: PRODUCTS[order.productId].doneText }),
-      order.summary?.line && el('p', { class: 'status__text', text: order.summary.line }),
+      order.summary?.line && el('p', { class: 'status__text' }, textWithIcons(order.summary.line)),
       order.raffleNote && el('p', { class: 'status__raffle', text: `🎟 ${order.raffleNote}` }),
       ...(result.codes ?? []).flatMap((code) => [
         el('code', { class: 'status__code', text: code }),

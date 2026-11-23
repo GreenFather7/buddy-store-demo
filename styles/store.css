@@ -1701,3 +1701,13 @@ p.raffle-sheet__tickets--in {
 .field__cell .field__unit {
   align-self: center;
 }
+
+/* фирменная звезда и кристалл Gram внутри строки текста */
+.inline-icon {
+  display: inline-block;
+  width: 1.15em;
+  height: 1.15em;
+  margin: 0 0.1em;
+  vertical-align: -0.2em;
+  object-fit: contain;
+}

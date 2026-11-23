@@ -2,7 +2,7 @@
 // В окне выбирается, чем закончится заказ, — так проверяются все экраны после оплаты.
 // В боевом режиме модуль не используется.
 
-import { el } from './dom.js'
+import { el, textWithIcons } from './dom.js'
 import { formatRub } from './lib.js'
 
 const BALANCE_KEY = 'buddy.test.balance'
@@ -104,7 +104,7 @@ export const askTestPayment = ({ priceText, rubText, title }) =>
       el('div', { class: 'test-sheet__backdrop', onClick: () => finish(null) }),
       el('div', { class: 'test-sheet__panel' }, [
         el('p', { class: 'test-sheet__badge', text: 'Тестовая оплата' }),
-        el('p', { class: 'test-sheet__title', text: title }),
+        el('p', { class: 'test-sheet__title' }, textWithIcons(title)),
         el('p', { class: 'test-sheet__price', text: priceText }),
         el('p', {
           class: `test-sheet__balance${isShort ? ' test-sheet__balance--short' : ''}`,
