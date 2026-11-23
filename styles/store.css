@@ -1680,3 +1680,24 @@ p.raffle-sheet__tickets--in {
 .pay__options {
   --icon-visible: 1.5rem;
 }
+
+/* «@» и ник — одним шрифтом и по одной базовой линии: раньше «@» был другого размера
+   и выравнивался по центру рамки, а не по строке текста, поэтому ник казался выше */
+.field__cell {
+  align-items: baseline;
+}
+
+.field--combo .field__prefix {
+  font-size: 1.0625rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.field__cell--amount {
+  align-self: center;
+}
+
+/* значок у количества (звезда, кристалл) — по центру строки, а не на базовой линии текста */
+.field__cell .field__unit {
+  align-self: center;
+}
