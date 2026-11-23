@@ -809,7 +809,8 @@ select.field__input {
   background: linear-gradient(90deg, var(--brand-to), color-mix(in srgb, var(--brand-to) 65%, #fff));
   color: #fff;
   text-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
-  box-shadow: 0 12px 30px -12px var(--brand-to);
+  /* мягкое свечение снизу — заметно, но не кричит */
+  box-shadow: 0 8px 22px -14px var(--brand-to);
 }
 
 .status__check {
