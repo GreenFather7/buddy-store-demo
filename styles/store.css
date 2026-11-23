@@ -1956,11 +1956,6 @@ p.raffle-sheet__tickets--in {
   }
 }
 
-/* место под плашку розыгрыша, пока код выпускается: занято, но не видно */
-.status__raffle--placeholder {
-  visibility: hidden;
-  animation: none;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .status__rise {

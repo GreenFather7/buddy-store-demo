@@ -3,7 +3,7 @@
 // Проигрыватель lottie-web и анимации подгружаются заранее, как только открыт раздел (preload…),
 // поэтому выбранный подарок сразу появляется анимированным.
 
-const LOTTIE_URL = 'scripts/vendor/lottie_light.min.js?v=1795439095'
+const LOTTIE_URL = 'scripts/vendor/lottie_light.min.js?v=1795439404'
 const LOTTIE_GIFT_IDS = new Set(Array.from({ length: 20 }, (_, index) => index + 1))
 const IMAGE_GIFT_IDS = new Set([21, 22])
 const giftJsonUrl = (giftId) => `assets/gifts/${giftId}.json`
