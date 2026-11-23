@@ -7,7 +7,7 @@ export const CONFIG = Object.freeze({
   cardsApi: '',
   // Канал Buddy: подписчикам звёзды дешевле (бэкенд сам проверяет подписку). Ссылка вида
   // 'https://t.me/имя_канала'; пусто — строка «Подписчикам канала — дешевле» не показывается.
-  channelUrl: '',
+  channelUrl: 'https://t.me/stars_buddy',
   // Как часто спрашивать статус заказа после оплаты.
   // в тестовом режиме чаще: итог тестовой оплаты виден почти сразу
   statusPollMs: new URLSearchParams(window.location.search).has('demo') ? 700 : 3000,
