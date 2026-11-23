@@ -1977,3 +1977,47 @@ p.raffle-sheet__tickets--in {
 .order__note-link:focus-visible {
   color: var(--color-text);
 }
+
+/* ── Экран после покупки — легче ─────────────────────────────────
+   Одно главное действие широкой кнопкой; «Поделиться» и «Пригласить» — в ряд, ниже ростом;
+   «Новая покупка» — тихая ссылка; плашка розыгрыша — без заливки. */
+.status__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.status__row > .btn {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9375rem;
+}
+
+.status__link {
+  padding: 0.5rem 1rem;
+  border: 0;
+  background: none;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--duration-fast);
+}
+
+.status__link:hover,
+.status__link:focus-visible {
+  color: var(--color-text);
+}
+
+.status .status__raffle {
+  background: none;
+  padding-block: 0.25rem;
+}
+
+.status .status__raffle--link:hover,
+.status .status__raffle--link:focus-visible {
+  background: none;
+  color: #ffd06b;
+}

@@ -1,15 +1,15 @@
-import { ApiError, request } from './api.js?v=1795437532'
-import { CONFIG } from './config.js?v=1795437532'
-import { BRANDS } from './brands.js?v=1795437532'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795437532'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795437532'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795437532'
-import { createGiftPreview } from './gift-preview.js?v=1795437532'
-import { revealCode, startScramble } from './codefx.js?v=1795437532'
-import { RAFFLE_MIN_TICKETS, rafflePrizeLink, rafflePrizeName, ticketsFor, ticketsWord } from './raffle.js?v=1795437532'
-import { mixHex } from './hero-math.js?v=1795437532'
-import { giftLink, validGift } from './gift-link.js?v=1795437532'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795437532'
+import { ApiError, request } from './api.js?v=1795437701'
+import { CONFIG } from './config.js?v=1795437701'
+import { BRANDS } from './brands.js?v=1795437701'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795437701'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795437701'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795437701'
+import { createGiftPreview } from './gift-preview.js?v=1795437701'
+import { revealCode, startScramble } from './codefx.js?v=1795437701'
+import { RAFFLE_MIN_TICKETS, rafflePrizeLink, rafflePrizeName, ticketsFor, ticketsWord } from './raffle.js?v=1795437701'
+import { mixHex } from './hero-math.js?v=1795437701'
+import { giftLink, validGift } from './gift-link.js?v=1795437701'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795437701'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -213,7 +213,7 @@ const shareButton = (order, codes) => {
     })
     .catch((error) => console.error('Картинка карты не нарисовалась', error))
   const button = el('button', {
-    class: 'btn btn--ghost',
+    class: 'btn btn--ghost status__secondary',
     type: 'button',
     text: SHARE_LABEL,
     onClick: async () => {
@@ -413,9 +413,12 @@ const inviteButton = () => {
   const telegram = window.Telegram?.WebApp
   if (!link || !telegram?.openTelegramLink) return null
   return el('button', {
-    class: 'btn btn--ghost',
+    class: 'btn btn--ghost status__secondary',
     type: 'button',
+    // одна на всю ширину — полная подпись; в ряду с «Поделиться» — короткая (см. pairSecondary)
     text: 'Пригласить друга · +1 билет',
+    'data-short': 'Пригласить · +1 🎟',
+    'aria-label': 'Пригласить друга — плюс один билет в розыгрыш',
     onClick: () => {
       const params = new URLSearchParams({ url: link, text: INVITE_TEXT })
       telegram.openTelegramLink(`https://t.me/share/url?${params}`)
@@ -436,9 +439,21 @@ const rafflePlaceholder = (order) => {
   return placeholder
 }
 
+/** «Поделиться» и «Пригласить» — в один ряд половинками, а не двумя широкими кнопками друг под другом. */
+const pairSecondary = (container) => {
+  const secondary = [...container.querySelectorAll(':scope > .status__secondary')]
+  if (secondary.length < 2) return
+  const row = el('div', { class: 'status__row' })
+  secondary[0].before(row)
+  row.append(...secondary)
+  secondary.forEach((button) => {
+    if (button.dataset.short) button.textContent = button.dataset.short
+  })
+}
+
 /** Кнопки и плашка появляются по очереди, мягко всплывая (порядок — в --rise-index). */
 const riseIn = (container) => {
-  container.querySelectorAll('.btn, .status__raffle:not(.status__raffle--placeholder)').forEach((node, index) => {
+  container.querySelectorAll('.btn, .status__link, .status__raffle:not(.status__raffle--placeholder)').forEach((node, index) => {
     node.classList.add('status__rise')
     node.style.setProperty('--rise-index', String(index))
   })
@@ -500,14 +515,16 @@ export const showStatus = (container, order, onClose) => {
         ...items,
         !isCardScreen && raffle,
         isDone && inviteButton(),
+        // тихая текстовая ссылка: главное на экране — код и его кнопка
         el('button', {
-          class: 'btn btn--ghost',
+          class: 'status__link',
           type: 'button',
           text: isFinal ? 'Новая покупка' : 'Отменить и вернуться',
           onClick: close,
         }),
       ].filter(Boolean),
     )
+    pairSecondary(container)
     riseIn(container)
   }
 
