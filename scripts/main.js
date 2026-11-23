@@ -1,20 +1,20 @@
-import { ApiError } from './api.js?v=1795421925'
-import { BRANDS } from './brands.js?v=1795421925'
-import { CONFIG } from './config.js?v=1795421925'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795421925'
-import { ensureFreshBuild } from './fresh.js?v=1795421925'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795421925'
-import { createHero, heroGlyph } from './hero.js?v=1795421925'
-import { mixHex } from './hero-math.js?v=1795421925'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795421925'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795421925'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795421925'
-import { readGiftLink } from './gift-link.js?v=1795421925'
-import { hapticError, initTelegram } from './telegram.js?v=1795421925'
-import { setAmount } from './odometer.js?v=1795421925'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795421925'
-import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795421925'
-import { settleDemoOrder } from './mock.js?v=1795421925'
+import { ApiError } from './api.js?v=1795433228'
+import { BRANDS } from './brands.js?v=1795433228'
+import { CONFIG } from './config.js?v=1795433228'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795433228'
+import { ensureFreshBuild } from './fresh.js?v=1795433228'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795433228'
+import { createHero, heroGlyph } from './hero.js?v=1795433228'
+import { mixHex } from './hero-math.js?v=1795433228'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795433228'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795433228'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795433228'
+import { readGiftLink } from './gift-link.js?v=1795433228'
+import { hapticError, initTelegram } from './telegram.js?v=1795433228'
+import { setAmount } from './odometer.js?v=1795433228'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795433228'
+import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795433228'
+import { settleDemoOrder } from './mock.js?v=1795433228'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -388,8 +388,17 @@ const setValue = (field, raw, data) => {
   }
   if (isValid) markInvalid(field, null)
   showError(null)
+  syncPresets(field.key)
   dependents.forEach((other) => controls[other.key].reload())
   requestQuote()
+}
+
+/** Шаблон отмечен выбранным, когда число в поле совпадает с ним — нажали шаблон или набрали то же число. */
+const syncPresets = (key) => {
+  const value = state.values[key]
+  fieldsEl.querySelectorAll(`[data-preset-for="${key}"]`).forEach((button) => {
+    button.setAttribute('aria-pressed', String(value !== undefined && String(value) === button.dataset.value))
+  })
 }
 
 const fieldMessage = (field, raw) => (field.validate ? field.validate(raw) : (field.error ?? 'Выберите вариант'))
@@ -432,6 +441,9 @@ const inputField = (field) => {
       {
         class: 'choice choice--preset',
         type: 'button',
+        'aria-pressed': 'false',
+        'data-preset-for': field.key,
+        'data-value': String(preset.value),
         onClick: () => {
           input.value = groupThousands(preset.value)
           setValue(field, input.value)
