@@ -1,5 +1,5 @@
-import { ApiError, request } from './api.js?v=1795419506'
-import { BRANDS } from './brands.js?v=1795419506'
+import { ApiError, request } from './api.js?v=1795419782'
+import { BRANDS } from './brands.js?v=1795419782'
 import {
   ORDER_STATE,
   flagUrl,
@@ -13,7 +13,7 @@ import {
   normalizeUsername,
   parseIntInRange,
   trimDecimals,
-} from './lib.js?v=1795419506'
+} from './lib.js?v=1795419782'
 
 const STARS_MIN = 50
 const STARS_MAX = 5000
@@ -304,8 +304,8 @@ const cards = {
   payLabel: (values, options) => {
     const brand = BRANDS[values.service]?.label
     const nominal = options.voucher?.short_name || options.voucher?.name
-    if (!brand) return { text: 'Купить гифт-карту' }
-    if (!nominal) return { text: `Купить ${brand}` }
+    if (!brand) return { text: 'Купить гифт-карту', isPartial: true }
+    if (!nominal) return { text: `Купить ${brand}`, isPartial: true }
     return { text: `${brand} ${nominal}`, flag: flagUrl(options.region?.code) }
   },
   methods: ['sbp', 'usdt'],

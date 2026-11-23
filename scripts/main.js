@@ -1,20 +1,20 @@
-import { ApiError } from './api.js?v=1795419506'
-import { BRANDS } from './brands.js?v=1795419506'
-import { CONFIG } from './config.js?v=1795419506'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795419506'
-import { ensureFreshBuild } from './fresh.js?v=1795419506'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795419506'
-import { createHero, heroGlyph } from './hero.js?v=1795419506'
-import { mixHex } from './hero-math.js?v=1795419506'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795419506'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795419506'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795419506'
-import { readGiftLink } from './gift-link.js?v=1795419506'
-import { hapticError, initTelegram } from './telegram.js?v=1795419506'
-import { setAmount } from './odometer.js?v=1795419506'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795419506'
-import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795419506'
-import { settleDemoOrder } from './mock.js?v=1795419506'
+import { ApiError } from './api.js?v=1795419782'
+import { BRANDS } from './brands.js?v=1795419782'
+import { CONFIG } from './config.js?v=1795419782'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795419782'
+import { ensureFreshBuild } from './fresh.js?v=1795419782'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795419782'
+import { createHero, heroGlyph } from './hero.js?v=1795419782'
+import { mixHex } from './hero-math.js?v=1795419782'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795419782'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795419782'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795419782'
+import { readGiftLink } from './gift-link.js?v=1795419782'
+import { hapticError, initTelegram } from './telegram.js?v=1795419782'
+import { setAmount } from './odometer.js?v=1795419782'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795419782'
+import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795419782'
+import { settleDemoOrder } from './mock.js?v=1795419782'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -96,14 +96,21 @@ const updateSubmit = () => {
   }
   const price = state?.quote?.[state.method]
   const amount = price && /\d/.test(price) ? price : ''
-  renderPayWord(submitLabelEl.querySelector('.pay-word'), amount)
+  const wordEl = submitLabelEl.querySelector('.pay-word')
   const hadAmount = Boolean(amountEl.dataset.value)
-  // Пока количество набирают вручную (стёрли «50», набирают «5», «50», «500»), цены нет.
-  // В том же разделе прежняя сумма остаётся приглушённой, и новая прокручивается от неё.
+  // Пока количество набирают вручную (стёрли «50», набирают «5», «50», «500») или у гифт-карты
+  // сменили страну и номинал ещё не выбран, цены нет. В том же разделе прежняя надпись и сумма
+  // остаются приглушёнными — кнопка не мигает «Купить …», и новая сумма прокручивается от старой.
   // При смене раздела сумма убирается.
-  const isTyping = !amount && hadAmount && amountEl.dataset.forProduct === state.product.id
+  const label = state.product.payLabel?.(state.values, state.optionData) ?? { text: PAY_WORD }
+  // старая цена ещё в памяти, а номинал в новой стране не выбран — это тоже «ждём»
+  // и цена посчитана ещё для прежнего выбора — надпись и сумма меняются вместе, а не по очереди
+  const isWaiting = !amount || Boolean(label.isPartial) || quotedSignature !== priceSignature()
+  const isTyping = isWaiting && hadAmount && amountEl.dataset.forProduct === state.product.id
   amountEl.classList.toggle('pay-amount--stale', isTyping)
+  wordEl.classList.toggle('pay-amount--stale', isTyping)
   if (isTyping) return
+  renderPayWord(wordEl, label, amount)
   setAmount(amountEl, amount, isAnimated && hadAmount)
   amountEl.dataset.forProduct = state.product.id
   amountEl.hidden = !amount
@@ -118,8 +125,7 @@ const updateSubmit = () => {
  * Слово перед суммой: «Оплатить» или то, что собрал покупатель (у гифт-карт — флаг, сервис, номинал).
  * Перерисовывается только при смене надписи — флаг не мигает от каждого обновления цены.
  */
-const renderPayWord = (wordEl, amount) => {
-  const label = state?.product.payLabel?.(state.values, state.optionData) ?? { text: PAY_WORD }
+const renderPayWord = (wordEl, label, amount) => {
   // у гифт-карты точка отделяет номинал от цены («PlayStation 1 500 TL · 760 ₽»)
   const text = label.flag && amount ? `${label.text} ·` : label.text
   const key = `${label.flag ?? ''}|${text}`
