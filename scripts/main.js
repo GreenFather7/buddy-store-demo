@@ -159,7 +159,8 @@ const productLook = (productId) => {
   const button = productButton(productId)
   return {
     color: getComputedStyle(button).getPropertyValue('--product-color').trim(),
-    glyph: heroGlyph.fromIcon(button.querySelector('svg')),
+    // у «Звёзд» иконка — картинка, а не контур; их частицы — собственная анимация, контур не нужен
+    glyph: button.querySelector('svg') ? heroGlyph.fromIcon(button.querySelector('svg')) : undefined,
   }
 }
 

@@ -1764,3 +1764,19 @@ p.raffle-sheet__tickets--in {
 .status__mark--done {
   --mark-color: #30d158;
 }
+
+/* Круг загрузки и значок итога — одного размера: при смене «Оплата получена» → «Готово»
+   галочка встаёт ровно на место круга, без скачка размера. */
+.status {
+  --status-icon: 4.5rem;
+}
+
+.status__spinner {
+  width: var(--status-icon);
+  height: var(--status-icon);
+}
+
+.status__mark {
+  width: var(--status-icon);
+  height: var(--status-icon);
+}
