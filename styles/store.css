@@ -1681,6 +1681,16 @@ p.raffle-sheet__tickets--in {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--section-color, #ffffff) 45%, transparent);
 }
 
+/* Экраны компьютеров (1 пиксель экрана на точку): капсула часто стоит на полпикселя,
+   и линия в 1px расплывается в два бледных пикселя — обводка местами пропадает.
+   Там она чуть толще и ярче; на телефонах (2–3 пикселя на точку) остаётся тонкой. */
+@media (max-resolution: 1.99dppx) {
+  .choice[aria-checked="true"],
+  .choice[aria-pressed="true"] {
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--section-color, #ffffff) 60%, transparent);
+  }
+}
+
 /* способы оплаты — одни значки, чуть крупнее, раз подписей нет */
 .pay__options {
   --icon-visible: 1.25rem;
