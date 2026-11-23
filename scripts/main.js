@@ -1,20 +1,20 @@
-import { ApiError } from './api.js?v=1795419251'
-import { BRANDS } from './brands.js?v=1795419251'
-import { CONFIG } from './config.js?v=1795419251'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795419251'
-import { ensureFreshBuild } from './fresh.js?v=1795419251'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795419251'
-import { createHero, heroGlyph } from './hero.js?v=1795419251'
-import { mixHex } from './hero-math.js?v=1795419251'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795419251'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795419251'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795419251'
-import { readGiftLink } from './gift-link.js?v=1795419251'
-import { hapticError, initTelegram } from './telegram.js?v=1795419251'
-import { setAmount } from './odometer.js?v=1795419251'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795419251'
-import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795419251'
-import { settleDemoOrder } from './mock.js?v=1795419251'
+import { ApiError } from './api.js?v=1795419506'
+import { BRANDS } from './brands.js?v=1795419506'
+import { CONFIG } from './config.js?v=1795419506'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795419506'
+import { ensureFreshBuild } from './fresh.js?v=1795419506'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795419506'
+import { createHero, heroGlyph } from './hero.js?v=1795419506'
+import { mixHex } from './hero-math.js?v=1795419506'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795419506'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795419506'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795419506'
+import { readGiftLink } from './gift-link.js?v=1795419506'
+import { hapticError, initTelegram } from './telegram.js?v=1795419506'
+import { setAmount } from './odometer.js?v=1795419506'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795419506'
+import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795419506'
+import { settleDemoOrder } from './mock.js?v=1795419506'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -94,11 +94,9 @@ const updateSubmit = () => {
       submitLabelEl.animate(LABEL_IN, { duration: LABEL_IN_MS, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' })
     }
   }
-  const wordEl = submitLabelEl.querySelector('.pay-word')
-  const word = state?.product.payWord ?? PAY_WORD
-  if (wordEl.textContent !== word) wordEl.textContent = word
   const price = state?.quote?.[state.method]
   const amount = price && /\d/.test(price) ? price : ''
+  renderPayWord(submitLabelEl.querySelector('.pay-word'), amount)
   const hadAmount = Boolean(amountEl.dataset.value)
   // Пока количество набирают вручную (стёрли «50», набирают «5», «50», «500»), цены нет.
   // В том же разделе прежняя сумма остаётся приглушённой, и новая прокручивается от неё.
@@ -113,6 +111,29 @@ const updateSubmit = () => {
   if (amount && !hadAmount && isAnimated) {
     amountEl.animate(LABEL_IN, { duration: LABEL_IN_MS, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' })
   }
+  fitSubmitLabel()
+}
+
+/**
+ * Слово перед суммой: «Оплатить» или то, что собрал покупатель (у гифт-карт — флаг, сервис, номинал).
+ * Перерисовывается только при смене надписи — флаг не мигает от каждого обновления цены.
+ */
+const renderPayWord = (wordEl, amount) => {
+  const label = state?.product.payLabel?.(state.values, state.optionData) ?? { text: PAY_WORD }
+  // у гифт-карты точка отделяет номинал от цены («PlayStation 1 500 TL · 760 ₽»)
+  const text = label.flag && amount ? `${label.text} ·` : label.text
+  const key = `${label.flag ?? ''}|${text}`
+  if (wordEl.dataset.key === key) return
+  wordEl.dataset.key = key
+  wordEl.replaceChildren(label.flag ? flagImage(label.flag) : '', text)
+}
+
+/** Надпись не переносится: если на узком телефоне не влезает, кегль на кнопке чуть меньше. */
+const fitSubmitLabel = () => {
+  submitEl.classList.remove('order__submit--tight')
+  const style = getComputedStyle(submitEl)
+  const room = submitEl.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+  submitEl.classList.toggle('order__submit--tight', submitLabelEl.scrollWidth > room)
 }
 
 const showError = (text) => {

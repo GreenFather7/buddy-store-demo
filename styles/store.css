@@ -1813,3 +1813,20 @@ p.raffle-sheet__tickets--in {
 .status__mark--gift .gift-preview__emoji {
   font-size: 3rem;
 }
+
+/* у гифт-карт перед суммой — флаг страны, сервис и номинал */
+.pay-word {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.pay-word .flag {
+  width: 1.125em;
+  height: 1.125em;
+}
+
+/* длинная надпись на узком телефоне: кегль чуть меньше, но строка одна */
+.order__submit.order__submit--tight {
+  font-size: 0.875rem;
+}

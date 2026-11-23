@@ -1,5 +1,5 @@
-import { ApiError, request } from './api.js?v=1795419251'
-import { BRANDS } from './brands.js?v=1795419251'
+import { ApiError, request } from './api.js?v=1795419506'
+import { BRANDS } from './brands.js?v=1795419506'
 import {
   ORDER_STATE,
   flagUrl,
@@ -13,7 +13,7 @@ import {
   normalizeUsername,
   parseIntInRange,
   trimDecimals,
-} from './lib.js?v=1795419251'
+} from './lib.js?v=1795419506'
 
 const STARS_MIN = 50
 const STARS_MAX = 5000
@@ -299,8 +299,15 @@ export const loadCardServices = async () => {
 const cards = {
   id: 'cards',
   doneText: 'Ваш код',
-  // нигде больше не сказано, что покупается именно гифт-карта (код), — говорим на кнопке
-  payWord: 'Купить гифт-карту',
+  // На кнопке — что собрал покупатель: флаг страны, сервис и номинал («🇹🇷 PlayStation 1 500 TL»).
+  // Название страны не пишем — его заменяет флаг, иначе надпись не влезает в одну строку.
+  payLabel: (values, options) => {
+    const brand = BRANDS[values.service]?.label
+    const nominal = options.voucher?.short_name || options.voucher?.name
+    if (!brand) return { text: 'Купить гифт-карту' }
+    if (!nominal) return { text: `Купить ${brand}` }
+    return { text: `${brand} ${nominal}`, flag: flagUrl(options.region?.code) }
+  },
   methods: ['sbp', 'usdt'],
   fields: [
     // Сервис выбирается капсулой в строке разделов, поэтому в форме его нет.
