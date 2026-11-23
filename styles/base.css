@@ -8,6 +8,8 @@ html {
   scroll-behavior: smooth;
   scroll-padding-top: calc(var(--header-height) + 1rem);
   -webkit-text-size-adjust: 100%;
+  /* двойной тап не приближает страницу — быстрые нажатия на капсулы не дёргают экран */
+  touch-action: manipulation;
 }
 
 body {
