@@ -1,20 +1,20 @@
-import { ApiError } from './api.js?v=1795420376'
-import { BRANDS } from './brands.js?v=1795420376'
-import { CONFIG } from './config.js?v=1795420376'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795420376'
-import { ensureFreshBuild } from './fresh.js?v=1795420376'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795420376'
-import { createHero, heroGlyph } from './hero.js?v=1795420376'
-import { mixHex } from './hero-math.js?v=1795420376'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795420376'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795420376'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795420376'
-import { readGiftLink } from './gift-link.js?v=1795420376'
-import { hapticError, initTelegram } from './telegram.js?v=1795420376'
-import { setAmount } from './odometer.js?v=1795420376'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795420376'
-import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795420376'
-import { settleDemoOrder } from './mock.js?v=1795420376'
+import { ApiError } from './api.js?v=1795420778'
+import { BRANDS } from './brands.js?v=1795420778'
+import { CONFIG } from './config.js?v=1795420778'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795420778'
+import { ensureFreshBuild } from './fresh.js?v=1795420778'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795420778'
+import { createHero, heroGlyph } from './hero.js?v=1795420778'
+import { mixHex } from './hero-math.js?v=1795420778'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795420778'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795420778'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795420778'
+import { readGiftLink } from './gift-link.js?v=1795420778'
+import { hapticError, initTelegram } from './telegram.js?v=1795420778'
+import { setAmount } from './odometer.js?v=1795420778'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795420778'
+import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795420778'
+import { settleDemoOrder } from './mock.js?v=1795420778'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -52,6 +52,9 @@ const hero = createHero(document.querySelector('[data-hero]'))
 /** Состояние формы. Заменяется целиком при смене товара. */
 let state = null
 let quoteTimer = 0
+/** Сколько рядов вариантов сейчас грузится (страны, номиналы) — пока грузятся, кнопка не меняется. */
+let pendingOptionLoads = 0
+let isHintRecheck = false
 let quotedProduct = null
 let avatarTimer = 0
 let shownRecipient = null
@@ -103,19 +106,36 @@ const updateSubmit = () => {
   // Пока количество набирают вручную (стёрли «50», набирают «5», «50», «500») или выбор меняется,
   // в том же разделе прежние надпись, сумма и строка под кнопкой остаются приглушёнными,
   // и новая сумма прокручивается от старой. При смене раздела сумма убирается.
-  const word = state.product.payWord ?? PAY_WORD
-  const note = state.product.payNote?.(state.values, state.optionData) ?? null
-  // Ждём новую цену: её ещё нет, у гифт-карты выбор не собран (сменили страну, номинал не выбран)
-  // или цена посчитана для прежнего выбора. Надпись, сумма и строка под кнопкой меняются вместе.
-  const isWaiting = !amount || (Boolean(state.product.payNote) && !note) || quotedSignature !== priceSignature()
-  const isTyping = isWaiting && hadAmount && amountEl.dataset.forProduct === state.product.id
+  // Гифт-карта не собрана: на кнопке подсказка «Выберите страну» / «Выберите номинал», без цены.
+  const hint = state.product.payHint?.(state.values) ?? null
+  const isSameProduct = hadAmount && amountEl.dataset.forProduct === state.product.id
+  // Внутри раздела, пока грузятся варианты, надпись без цены («Выберите страну») просто
+  // остаётся как есть — иначе между подсказками на миг мелькнёт «Оплатить».
+  if (hint && pendingOptionLoads > 0 && !hadAmount && amountEl.dataset.forProduct === state.product.id) return
+  // Ждём: варианты ещё грузятся (сменили страну — номиналы в пути), цены ещё нет или она
+  // посчитана для прежнего выбора. Надпись, сумма и строка под кнопкой потом меняются вместе.
+  // Подгрузка вариантов начинается сразу после выбора, но чуть позже этого вызова —
+  // перепроверяем подсказку следующим шагом, иначе на миг мелькнёт «Выберите номинал».
+  if (hint && pendingOptionLoads === 0 && !isHintRecheck) {
+    isHintRecheck = true
+    queueMicrotask(() => {
+      updateSubmit()
+      isHintRecheck = false
+    })
+    return
+  }
+  const isWaiting = hint ? pendingOptionLoads > 0 : !amount || quotedSignature !== priceSignature()
+  const isTyping = isWaiting && isSameProduct
   ;[amountEl, wordEl, noteEl].forEach((node) => node.classList.toggle('pay-amount--stale', isTyping))
   if (isTyping) return
+  // пока варианты грузятся, подсказку не показываем — только обычное слово раздела
+  const word = (pendingOptionLoads === 0 && hint) || state.product.payWord || PAY_WORD
   if (wordEl.textContent !== word) wordEl.textContent = word
-  renderPayNote(note)
-  setAmount(amountEl, amount, isAnimated && hadAmount)
+  renderPayNote(hint ? null : (state.product.payNote?.(state.values, state.optionData) ?? null))
+  const shownAmount = hint ? '' : amount
+  setAmount(amountEl, shownAmount, isAnimated && hadAmount)
   amountEl.dataset.forProduct = state.product.id
-  amountEl.hidden = !amount
+  amountEl.hidden = !shownAmount
   // первая сумма не «крутится» с нуля, а мягко появляется рядом со словом
   if (amount && !hadAmount && isAnimated) {
     amountEl.animate(LABEL_IN, { duration: LABEL_IN_MS, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' })
@@ -484,6 +504,7 @@ const optionsField = (field) => {
     }
     if (deps.some((key) => state.values[key] === undefined)) return
     const snapshot = state
+    pendingOptionLoads += 1
     try {
       const options = await field.options(snapshot.values)
       if (state.product !== snapshot.product || deps.some((key) => state.values[key] !== snapshot.values[key])) return
@@ -522,6 +543,10 @@ const optionsField = (field) => {
       if (state.product !== snapshot.product) return
       body.classList.remove('choices--stale')
       body.replaceChildren(el('span', { class: 'field__hint', text: errorText(error) }))
+    } finally {
+      pendingOptionLoads -= 1
+      // варианты пришли и ничего не выбрано — на кнопке подсказка, что выбрать
+      if (state) updateSubmit()
     }
   }
 

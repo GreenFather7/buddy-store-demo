@@ -1,5 +1,5 @@
-import { ApiError, request } from './api.js?v=1795420376'
-import { BRANDS } from './brands.js?v=1795420376'
+import { ApiError, request } from './api.js?v=1795420778'
+import { BRANDS } from './brands.js?v=1795420778'
 import {
   ORDER_STATE,
   flagUrl,
@@ -13,7 +13,7 @@ import {
   normalizeUsername,
   parseIntInRange,
   trimDecimals,
-} from './lib.js?v=1795420376'
+} from './lib.js?v=1795420778'
 
 const STARS_MIN = 50
 const STARS_MAX = 5000
@@ -299,16 +299,23 @@ export const loadCardServices = async () => {
 const cards = {
   id: 'cards',
   doneText: 'Ваш код',
-  // нигде больше не сказано, что покупается именно гифт-карта (код), — говорим на кнопке
-  payWord: 'Купить гифт-карту',
-  // Под кнопкой серой строкой — что собрал покупатель: «🇹🇷 PlayStation · Турция · 1 500 TL».
+  // Пока не всё выбрано, кнопка подсказывает следующий шаг (она остаётся активной: нажатие
+  // подсветит нужный ряд красным).
+  payHint: (values) => {
+    if (values.region === undefined) return 'Выберите страну'
+    if (values.voucher === undefined) return 'Выберите номинал'
+    return null
+  },
+  // Под кнопкой «Оплатить» серой строкой — что именно покупается: «🇹🇷 Гифт-карта PlayStation · Турция · 1 500 TL».
+  // Больше нигде не сказано, что это гифт-карта (код), а глагол на кнопке у всех разделов один.
   // null — выбор ещё не собран (страна сменилась, номинал не выбран).
   payNote: (values, options) => {
     const brand = BRANDS[values.service]?.label
     const nominal = options.voucher?.short_name || options.voucher?.name
     if (!brand || !nominal) return null
     const region = options.region?.label
-    return { text: [brand, region, nominal].filter(Boolean).join(' · '), flag: flagUrl(options.region?.code) }
+    const parts = [`Гифт-карта ${brand}`, region, nominal].filter(Boolean)
+    return { text: parts.join(' · '), flag: flagUrl(options.region?.code) }
   },
   methods: ['sbp', 'usdt'],
   fields: [
