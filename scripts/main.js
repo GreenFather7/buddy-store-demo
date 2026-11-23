@@ -1,20 +1,20 @@
-import { ApiError } from './api.js?v=1795434061'
-import { BRANDS } from './brands.js?v=1795434061'
-import { CONFIG } from './config.js?v=1795434061'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795434061'
-import { ensureFreshBuild } from './fresh.js?v=1795434061'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795434061'
-import { createHero, heroGlyph } from './hero.js?v=1795434061'
-import { mixHex } from './hero-math.js?v=1795434061'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795434061'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795434061'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795434061'
-import { readGiftLink } from './gift-link.js?v=1795434061'
-import { hapticError, initTelegram } from './telegram.js?v=1795434061'
-import { setAmount } from './odometer.js?v=1795434061'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795434061'
-import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795434061'
-import { settleDemoOrder } from './mock.js?v=1795434061'
+import { ApiError } from './api.js?v=1795434382'
+import { BRANDS } from './brands.js?v=1795434382'
+import { CONFIG } from './config.js?v=1795434382'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795434382'
+import { ensureFreshBuild } from './fresh.js?v=1795434382'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795434382'
+import { createHero, heroGlyph } from './hero.js?v=1795434382'
+import { mixHex } from './hero-math.js?v=1795434382'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795434382'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795434382'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795434382'
+import { readGiftLink } from './gift-link.js?v=1795434382'
+import { hapticError, initTelegram } from './telegram.js?v=1795434382'
+import { setAmount } from './odometer.js?v=1795434382'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795434382'
+import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795434382'
+import { settleDemoOrder } from './mock.js?v=1795434382'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -527,11 +527,15 @@ const optionsField = (field) => {
     // остаются приглушёнными и неактивными, а если их ещё не было — место держат невидимые заглушки.
     // Так ряд не мигает и кнопки оплаты ниже не прыгают.
     const shown = [...body.querySelectorAll('.choice:not(.choice--skeleton)')]
+    // что было на экране и что выбрано — чтобы те же варианты не перерисовывать с анимацией
+    // и вернуть выбор (переключили PlayStation на Xbox — Турция и 25 TL остаются выбранными)
+    const shownLabels = shown.map((button) => button.textContent).join('|')
+    const chosenLabel = body.querySelector('[aria-checked="true"]')?.textContent ?? null
     if (shown.length > 0) {
+      // обводка выбранного остаётся, ряд бледнеет только если грузится долго (задержка — в стилях)
       body.classList.add('choices--stale')
       shown.forEach((button) => {
         button.disabled = true
-        button.setAttribute('aria-checked', 'false')
       })
     } else {
       body.replaceChildren(...skeletonChoices(field))
@@ -561,7 +565,12 @@ const optionsField = (field) => {
         )
         body.replaceChildren(el('div', { class: 'field__control' }, [select]))
       } else {
-        body.replaceChildren(...options.map((option, index) => appear(optionButton(field, option, body), index)))
+        const buttons = options.map((option) => optionButton(field, option, body))
+        const isSameSet = buttons.map((button) => button.textContent).join('|') === shownLabels
+        // те же варианты встают на место молча; новые — с лёгким появлением
+        body.replaceChildren(...(isSameSet ? buttons : buttons.map((button, index) => appear(button, index))))
+        const again = buttons.find((button) => button.textContent === chosenLabel && !button.disabled)
+        if (state.values[field.key] === undefined && again) again.click()
         // анимации выбранного варианта (подарок, коробка тарифа) — скачиваем заранее
         if (field.hasPreview) {
           const media = options.map((option) => option.preview?.animation).filter(Boolean)
