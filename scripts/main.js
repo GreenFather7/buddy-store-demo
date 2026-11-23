@@ -1,19 +1,20 @@
-import { ApiError } from './api.js?v=1795418729'
-import { BRANDS } from './brands.js?v=1795418729'
-import { CONFIG } from './config.js?v=1795418729'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795418729'
-import { ensureFreshBuild } from './fresh.js?v=1795418729'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795418729'
-import { createHero, heroGlyph } from './hero.js?v=1795418729'
-import { mixHex } from './hero-math.js?v=1795418729'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795418729'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795418729'
-import { loadOrder, saveOrder, showStatus } from './status.js?v=1795418729'
-import { hapticError, initTelegram } from './telegram.js?v=1795418729'
-import { setAmount } from './odometer.js?v=1795418729'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795418729'
-import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795418729'
-import { settleDemoOrder } from './mock.js?v=1795418729'
+import { ApiError } from './api.js?v=1795419111'
+import { BRANDS } from './brands.js?v=1795419111'
+import { CONFIG } from './config.js?v=1795419111'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795419111'
+import { ensureFreshBuild } from './fresh.js?v=1795419111'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795419111'
+import { createHero, heroGlyph } from './hero.js?v=1795419111'
+import { mixHex } from './hero-math.js?v=1795419111'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795419111'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795419111'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795419111'
+import { readGiftLink } from './gift-link.js?v=1795419111'
+import { hapticError, initTelegram } from './telegram.js?v=1795419111'
+import { setAmount } from './odometer.js?v=1795419111'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795419111'
+import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795419111'
+import { settleDemoOrder } from './mock.js?v=1795419111'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -752,8 +753,23 @@ const init = () => {
 
   selectProduct(DEFAULT_PRODUCT)
   addCardCapsules()
+  // Открыли ссылку на подаренную карту — показываем её, а не магазин и не свой заказ.
+  const gift = readGiftLink(window.location.hash)
+  if (gift) {
+    openGift(gift)
+    return
+  }
   const pendingOrder = loadOrder()
   if (pendingOrder) openStatus(pendingOrder)
+}
+
+const openGift = (gift) => {
+  setFormVisible(false)
+  showGift(statusEl, gift, () => {
+    // код из адреса убираем: дальше это обычный магазин
+    window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    setFormVisible(true)
+  })
 }
 
 ensureFreshBuild()

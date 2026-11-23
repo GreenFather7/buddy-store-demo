@@ -1,12 +1,13 @@
-import { ApiError } from './api.js?v=1795418729'
-import { CONFIG } from './config.js?v=1795418729'
-import { BRANDS } from './brands.js?v=1795418729'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795418729'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795418729'
-import { PRODUCTS, checkOrder } from './products.js?v=1795418729'
-import { createGiftPreview } from './gift-preview.js?v=1795418729'
-import { revealCode, startScramble } from './codefx.js?v=1795418729'
-import { mixHex } from './hero-math.js?v=1795418729'
+import { ApiError } from './api.js?v=1795419111'
+import { CONFIG } from './config.js?v=1795419111'
+import { BRANDS } from './brands.js?v=1795419111'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795419111'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795419111'
+import { PRODUCTS, checkOrder } from './products.js?v=1795419111'
+import { createGiftPreview } from './gift-preview.js?v=1795419111'
+import { revealCode, startScramble } from './codefx.js?v=1795419111'
+import { giftLink, validGift } from './gift-link.js?v=1795419111'
+import { logoColor, renderGiftImage, shareGift } from './gift-share.js?v=1795419111'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -75,7 +76,9 @@ const CARD_HEADING = {
   issuing: ['Оплата получена', () => 'Выпускаем код, это пара секунд'],
   // в Telegram бот пришлёт код в свой чат; в обычном браузере код появится на этой странице
   delayed: ['Код задерживается', () => (isInTelegram() ? 'Пришлём код в чат бота, как появится' : 'Код появится здесь сам')],
-  ready: ['Код готов', (brand) => `Скопируйте и активируйте в ${brand.label}`],
+  ready: ['Гифт-карта готова',(brand) => `Скопируйте и активируйте в ${brand.label}`],
+  // получатель открыл ссылку, которой с ним поделились
+  received: ['Вам подарили карту', (brand) => `Скопируйте и активируйте в ${brand.label}`],
 }
 
 const isInTelegram = () => document.documentElement.classList.contains('is-telegram')
@@ -90,8 +93,9 @@ const cardHeading = (stage, brand) => {
  * Пока код выпускается (codes пустой), его символы перебираются; когда код пришёл —
  * они по очереди встают на место, и появляется кнопка «Скопировать код».
  * @param {'issuing'|'delayed'} [waiting] почему кода ещё нет
+ * @param {{ isReceived?: boolean }} [options] карту открыл получатель подарка — без «Поделиться»
  */
-const codeCard = (order, codes, waiting = 'issuing') => {
+const codeCard = (order, codes, waiting = 'issuing', { isReceived = false } = {}) => {
   const brandId = String(order.summary?.brand ?? '')
   if (!Object.hasOwn(BRANDS, brandId)) return null
   const brand = BRANDS[brandId]
@@ -132,7 +136,7 @@ const codeCard = (order, codes, waiting = 'issuing') => {
     ...codeNodes,
     hint,
   ])
-  card.style.setProperty('--logo-color', logoColor(brandId, brand))
+  card.style.setProperty('--logo-color', logoColor(brandId))
   if (!isReady) return [...cardHeading(waiting, brand), paintBrand(card, brand)]
   const activation = activationLink(brandId, codes[0])
   const activate =
@@ -165,7 +169,42 @@ const codeCard = (order, codes, waiting = 'issuing') => {
     button.style.setProperty('--brand-from', brand.from)
     button.style.setProperty('--brand-to', brand.to)
   })
-  return [...cardHeading('ready', brand), paintBrand(card, brand), activate, copyAll].filter(Boolean)
+  const share = !isReceived && shareButton(order, codes)
+  return [...cardHeading(isReceived ? 'received' : 'ready', brand), paintBrand(card, brand), activate, copyAll, share].filter(
+    Boolean,
+  )
+}
+
+const SHARE_LABEL = 'Поделиться'
+const SHARE_RESULT = { copied: 'Ссылка скопирована', failed: 'Не получилось, скопируйте код' }
+
+/**
+ * «Поделиться» картой: картинка карты и ссылка, по которой получатель скопирует код.
+ * Картинка рисуется сразу, пока покупатель смотрит на код, — к нажатию она уже готова.
+ */
+const shareButton = (order, codes) => {
+  const gift = validGift({ ...order.summary, codes })
+  if (!gift) return null
+  let image = null
+  renderGiftImage(gift)
+    .then((file) => {
+      image = file
+    })
+    .catch((error) => console.error('Картинка карты не нарисовалась', error))
+  const button = el('button', {
+    class: 'btn btn--ghost',
+    type: 'button',
+    text: SHARE_LABEL,
+    onClick: async () => {
+      const result = await shareGift(gift, giftLink(gift, window.location.href), image)
+      if (!SHARE_RESULT[result]) return
+      button.textContent = SHARE_RESULT[result]
+      setTimeout(() => {
+        button.textContent = SHARE_LABEL
+      }, COPIED_FEEDBACK_MS)
+    },
+  })
+  return button
 }
 
 // Кнопка «Активировать» — только у App Store: его страница активации сама подставляет код
@@ -179,10 +218,6 @@ const ACTIVATE_WITH_CODE = {
 const activationLink = (brandId, code) =>
   ACTIVATE_WITH_CODE[brandId] ? { url: ACTIVATE_WITH_CODE[brandId](code), isFilled: true } : null
 
-/** Тёмные фирменные цвета (Roblox, Steam) на тёмной карте не видны — у них логотип белый. */
-const WHITE_LOGO_BRANDS = ['roblox', 'steam']
-const LOGO_LIFT = 0.15
-const logoColor = (brandId, brand) => (WHITE_LOGO_BRANDS.includes(brandId) ? '#ffffff' : mixHex(brand.to, '#ffffff', LOGO_LIFT))
 
 /** Заказ гифт-карты с кодом (не Steam): пока ждём код, показываем карту с перебором. */
 const isVoucherOrder = (order) => order.productId === 'cards' && Object.hasOwn(BRANDS, String(order.summary?.brand ?? ''))
@@ -357,4 +392,29 @@ export const showStatus = (container, order, onClose) => {
   }
   render(order.testOutcome ? (TEST_START[order.testOutcome] ?? { state: ORDER_STATE.PAID }) : { state: ORDER_STATE.PENDING })
   poll()
+}
+
+/**
+ * Карта, которой поделились: получатель видит её с кнопкой «Скопировать код»
+ * (у App Store — и «Активировать»), а ниже — «Купить себе», чтобы перейти в магазин.
+ * @param {HTMLElement} container
+ * @param {import('./gift-link.js').Gift} gift
+ * @param {() => void} onClose
+ */
+export const showGift = (container, gift, onClose) => {
+  const order = { summary: { brand: gift.brand, nominal: gift.nominal, region: gift.region, regionCode: gift.regionCode } }
+  container.replaceChildren(
+    ...codeCard(order, gift.codes, 'issuing', { isReceived: true }),
+    el('button', {
+      class: 'btn btn--ghost',
+      type: 'button',
+      text: 'Купить себе',
+      onClick: () => {
+        container.hidden = true
+        container.replaceChildren()
+        onClose()
+      },
+    }),
+  )
+  container.hidden = false
 }
