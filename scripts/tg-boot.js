@@ -5,7 +5,7 @@
 // Обычным посетителям сайта ничего из этого не нужно.
 if (/(^#|&)tgWebApp(Data|Version|Platform)=/.test(window.location.hash)) {
   document.documentElement.classList.add('is-telegram')
-  document.write('<script src="scripts/vendor/telegram-web-app.js?v=1795434382"><\/script>')
+  document.write('<script src="scripts/vendor/telegram-web-app.js?v=1795434806"><\/script>')
 
   // Мини-приложение ведёт себя как приложение: страница не приближается и не отдаляется.
   // На сайте в браузере масштаб щипком оставлен — он нужен людям со слабым зрением.

@@ -1,13 +1,13 @@
-import { ApiError, request } from './api.js?v=1795434382'
-import { CONFIG } from './config.js?v=1795434382'
-import { BRANDS } from './brands.js?v=1795434382'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795434382'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795434382'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795434382'
-import { createGiftPreview } from './gift-preview.js?v=1795434382'
-import { revealCode, startScramble } from './codefx.js?v=1795434382'
-import { giftLink, validGift } from './gift-link.js?v=1795434382'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795434382'
+import { ApiError, request } from './api.js?v=1795434806'
+import { CONFIG } from './config.js?v=1795434806'
+import { BRANDS } from './brands.js?v=1795434806'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795434806'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795434806'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795434806'
+import { createGiftPreview } from './gift-preview.js?v=1795434806'
+import { revealCode, startScramble } from './codefx.js?v=1795434806'
+import { giftLink, validGift } from './gift-link.js?v=1795434806'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795434806'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -73,19 +73,34 @@ const COPY_HINT = 'нажмите, чтобы скопировать'
 // У каждого этапа заголовок и одна строка пояснения — так карта под ними не прыгает,
 // когда «Оплата получена» сменяется на «Код готов».
 const CARD_HEADING = {
-  issuing: ['Оплата получена', () => 'Выпускаем код, это пара секунд'],
+  issuing: ['Оплата *получена*', () => 'Выпускаем код, это пара секунд'],
   // в Telegram бот пришлёт код в свой чат; в обычном браузере код появится на этой странице
   delayed: ['Код задерживается', () => (isInTelegram() ? 'Пришлём код в чат бота, как появится' : 'Код появится здесь сам')],
-  ready: ['Gift-карта готова',(brand) => `Скопируйте и активируйте в ${brand.label}`],
+  ready: ['Gift-карта *готова*',(brand) => `Скопируйте и активируйте в ${brand.label}`],
   // получатель открыл ссылку, которой с ним поделились
-  received: ['Вам подарили карту', (brand) => `Скопируйте и активируйте в ${brand.label}`],
+  received: ['Вам *подарили* карту', (brand) => `Скопируйте и активируйте в ${brand.label}`],
 }
+
+/**
+ * Заголовок экрана после оплаты. Слово-результат в *звёздочках* («Gift-карта *готова*»)
+ * переливается тем же градиентом, что «покупаем?» на главном экране: глаз сразу видит, что получилось.
+ * У ошибок и ожидания звёздочек нет — они остаются белыми.
+ */
+const statusTitle = (text) =>
+  el(
+    'p',
+    { class: 'status__title' },
+    text
+      .split(/\*([^*]+)\*/)
+      .map((part, index) => (index % 2 === 1 ? el('span', { class: 'shine', text: part }) : part))
+      .filter(Boolean),
+  )
 
 const isInTelegram = () => document.documentElement.classList.contains('is-telegram')
 
 const cardHeading = (stage, brand) => {
   const [title, text] = CARD_HEADING[stage]
-  return [el('p', { class: 'status__title', text: title }), el('p', { class: 'status__text', text: text(brand) })]
+  return [statusTitle(title), el('p', { class: 'status__text', text: text(brand) })]
 }
 
 /**
@@ -300,7 +315,7 @@ const VIEW = {
   [ORDER_STATE.PAID]: (order) =>
     (isVoucherOrder(order) && codeCard(order, [], 'issuing')) || [
     el('div', { class: 'status__spinner' }),
-    el('p', { class: 'status__title', text: 'Оплата получена' }),
+    statusTitle('Оплата *получена*'),
     el('p', { class: 'status__text', text: 'Отправляем, обычно пара минут' }),
   ],
   [ORDER_STATE.DELAYED]: (order) =>
@@ -312,7 +327,7 @@ const VIEW = {
   [ORDER_STATE.DONE]: (order, result) =>
     ((result.codes ?? []).length > 0 && codeCard(order, result.codes)) || [
       successMark(order),
-      el('p', { class: 'status__title', text: PRODUCTS[order.productId].doneText }),
+      statusTitle(PRODUCTS[order.productId].doneText),
       order.summary?.line && el('p', { class: 'status__text' }, textWithIcons(order.summary.line)),
       order.raffleNote && el('p', { class: 'status__raffle', text: `🎟 ${order.raffleNote}` }),
       ...(result.codes ?? []).flatMap((code) => [

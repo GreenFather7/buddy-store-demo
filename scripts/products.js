@@ -1,5 +1,5 @@
-import { ApiError, request } from './api.js?v=1795434382'
-import { BRANDS } from './brands.js?v=1795434382'
+import { ApiError, request } from './api.js?v=1795434806'
+import { BRANDS } from './brands.js?v=1795434806'
 import {
   ORDER_STATE,
   flagUrl,
@@ -13,7 +13,7 @@ import {
   normalizeUsername,
   parseIntInRange,
   trimDecimals,
-} from './lib.js?v=1795434382'
+} from './lib.js?v=1795434806'
 
 const STARS_MIN = 50
 const STARS_MAX = 5000
@@ -100,7 +100,7 @@ const stars = {
   // цена звёзд зависит только от количества — показываем её, не дожидаясь ника
   quoteKeys: ['amount'],
   summary: ({ recipient, amount }) => ({ line: `${groupThousands(amount)} ⭐ для @${recipient}` }),
-  doneText: 'Звёзды отправлены',
+  doneText: 'Звёзды *отправлены*',
   fields: [
     recipientField,
     {
@@ -129,7 +129,7 @@ const premium = {
   id: 'premium',
   // бэкенд считает цену через Fragment для конкретного получателя — без ника цены нет
   summary: ({ recipient, months }) => ({ line: `Premium на ${PREMIUM_LABEL[months] ?? `${months} мес.`} для @${recipient}` }),
-  doneText: 'Premium подключён',
+  doneText: 'Premium *подключён*',
   fields: [
     recipientField,
     {
@@ -174,7 +174,7 @@ const gram = {
   id: 'gram',
   // бэкенд считает цену через Fragment для конкретного получателя — без ника цены нет
   summary: ({ recipient, amount }) => ({ line: `${groupThousands(amount)} 💎 для @${recipient}` }),
-  doneText: 'Gram отправлен',
+  doneText: 'Gram *отправлен*',
   fields: [
     recipientField,
     {
@@ -206,7 +206,7 @@ const gifts = {
   // цена подарка известна из списка — показываем сразу после выбора
   quoteKeys: ['gift'],
   summary: ({ recipient, gift }, options) => ({ line: `для @${recipient}`, gift: { id: gift, emoji: options.gift?.emoji ?? '🎁' } }),
-  doneText: 'Подарок отправлен',
+  doneText: 'Подарок *отправлен*',
   fields: [
     recipientField,
     {
@@ -254,7 +254,7 @@ const cardsOrder = (path, body) =>
 const steam = {
   id: 'steam',
   summary: ({ account, amount }) => ({ line: `${groupThousands(amount)} ₽ на аккаунт ${account}` }),
-  doneText: 'Steam пополнен',
+  doneText: 'Steam *пополнен*',
   methods: ['sbp', 'usdt'],
   fields: [
     {
@@ -298,7 +298,7 @@ export const loadCardServices = async () => {
 
 const cards = {
   id: 'cards',
-  doneText: 'Ваш код',
+  doneText: 'Код *готов*',
   // Пока не всё выбрано, кнопка подсказывает следующий шаг (она остаётся активной: нажатие
   // подсветит нужный ряд красным).
   payHint: (values) => {
@@ -400,7 +400,7 @@ const gtaOffers = async () => {
 
 const gta = {
   id: 'gta',
-  doneText: 'Ваш код',
+  doneText: 'Код *готов*',
   methods: ['sbp', 'usdt'],
   payHint: (values) => {
     if (values.region === undefined) return 'Выберите страну'
