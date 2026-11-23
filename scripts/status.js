@@ -6,6 +6,7 @@ import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js'
 import { PRODUCTS, checkOrder } from './products.js'
 import { createGiftPreview } from './gift-preview.js'
 import { revealCode, startScramble } from './codefx.js'
+import { mixHex } from './hero-math.js'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -110,8 +111,11 @@ const codeCard = (order, codes, waiting = 'issuing') => {
   if (!isReady) startScramble(codeNodes[0])
   const card = el('div', { class: `code-card${isReady ? ' code-card--ready' : ''}` }, [
     el('div', { class: 'code-card__head' }, [
-      el('span', { class: 'code-card__logo' }, [logoIcon(brand.path)]),
-      el('span', { class: 'code-card__name', text: brand.label }),
+      // логотип в цвет бренда без подложки и название по его центру — как карты в боте гифт-карт
+      el('span', { class: 'code-card__brand' }, [
+        logoIcon(brand.path, 'code-card__logo'),
+        el('span', { class: 'code-card__name', text: brand.label }),
+      ]),
       el('span', { class: 'code-card__value' }, [
         el('strong', { text: String(order.summary.nominal ?? '') }),
         order.summary.region &&
@@ -125,6 +129,7 @@ const codeCard = (order, codes, waiting = 'issuing') => {
     ...codeNodes,
     hint,
   ])
+  card.style.setProperty('--logo-color', logoColor(brandId, brand))
   if (!isReady) return [...cardHeading(waiting, brand), paintBrand(card, brand)]
   const activation = activationLink(brandId, codes[0])
   const activate =
@@ -183,6 +188,11 @@ const activationLink = (brandId, code) => {
   if (ACTIVATE_PAGE[brandId]) return { url: ACTIVATE_PAGE[brandId], isFilled: false }
   return null
 }
+
+/** Тёмные фирменные цвета (Roblox, Steam) на тёмной карте не видны — у них логотип белый. */
+const WHITE_LOGO_BRANDS = ['roblox', 'steam']
+const LOGO_LIFT = 0.15
+const logoColor = (brandId, brand) => (WHITE_LOGO_BRANDS.includes(brandId) ? '#ffffff' : mixHex(brand.to, '#ffffff', LOGO_LIFT))
 
 /** Заказ гифт-карты с кодом (не Steam): пока ждём код, показываем карту с перебором. */
 const isVoucherOrder = (order) => order.productId === 'cards' && Object.hasOwn(BRANDS, String(order.summary?.brand ?? ''))
