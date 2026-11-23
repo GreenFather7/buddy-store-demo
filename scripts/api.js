@@ -1,5 +1,5 @@
-import { CONFIG } from './config.js?v=1795419782'
-import { mockRequest } from './mock.js?v=1795419782'
+import { CONFIG } from './config.js?v=1795419966'
+import { mockRequest } from './mock.js?v=1795419966'
 
 const SESSION_HEADER = 'x-guest-session'
 const SESSION_PATH = '/api/web/session'
@@ -37,7 +37,7 @@ const writeSession = (shop, session) => {
 
 const memorySessions = {}
 
-const send = async (shop, path, { method = 'GET', query, body, token } = {}) => {
+const send = async (shop, path, { method = 'GET', query, body, token, headers } = {}) => {
   if (CONFIG.demo) return mockRequest(shop, path, { method, query, body })
   if (!BASE_URL[shop]) throw new ApiError(503, 'API address is not configured')
 
@@ -51,6 +51,7 @@ const send = async (shop, path, { method = 'GET', query, body, token } = {}) => 
       headers: {
         ...(body ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { [SESSION_HEADER]: token } : {}),
+        ...(headers ?? {}),
       },
       body: body ? JSON.stringify(body) : undefined,
     })
@@ -84,7 +85,7 @@ const dropSession = (shop) => {
  * Запрос к бэкенду магазина от имени гостя.
  * @param {'stars'|'cards'} shop
  * @param {string} path
- * @param {{method?: string, query?: Record<string, string|number>, body?: object, isPublic?: boolean}} [options]
+ * @param {{method?: string, query?: Record<string, string|number>, body?: object, headers?: Record<string, string>, isPublic?: boolean}} [options]
  */
 export const request = async (shop, path, { isPublic = false, ...options } = {}) => {
   if (isPublic) return send(shop, path, options)

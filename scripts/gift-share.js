@@ -3,9 +3,9 @@
 // «Скопировать код». Картинка рисуется заранее, как только код готов: браузер разрешает
 // открыть окно «Поделиться» только сразу по нажатию, ждать отрисовку там нельзя.
 
-import { BRANDS } from './brands.js?v=1795419782'
-import { flagUrl } from './lib.js?v=1795419782'
-import { mixHex } from './hero-math.js?v=1795419782'
+import { BRANDS } from './brands.js?v=1795419966'
+import { flagUrl } from './lib.js?v=1795419966'
+import { mixHex } from './hero-math.js?v=1795419966'
 
 const WIDTH = 1200
 const HEIGHT = 760
@@ -142,6 +142,50 @@ export const renderGiftImage = async (gift) => {
   if (!blob) return null
   const name = `buddy-${brand.label.toLowerCase().replace(/\s+/g, '-')}.jpg`
   return new File([blob], name, { type: 'image/jpeg' })
+}
+
+const TELEGRAM_SHARE_VERSION = '8.0'
+const SHARE_PATH = '/api/gift/share'
+
+/** JPEG в base64 без префикса — так картинка уходит на сервер для сообщения Telegram. */
+export const imageToBase64 = (image) =>
+  new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.addEventListener('load', () => resolve(String(reader.result).split(',')[1] ?? null))
+    reader.addEventListener('error', () => resolve(null))
+    reader.readAsDataURL(image)
+  })
+
+/** Мини-приложение в Telegram 8.0+: можно открыть его окно «Отправить сообщение». */
+export const canShareInTelegram = () => {
+  const app = window.Telegram?.WebApp
+  return Boolean(app?.initData && typeof app.shareMessage === 'function' && app.isVersionAtLeast?.(TELEGRAM_SHARE_VERSION))
+}
+
+/**
+ * Окно Telegram «Отправить сообщение»: фото карты, подпись и кнопка «Скопировать код».
+ * Сообщение готовит бот на сервере (по заказу из базы, коды — оттуда же), здесь только открываем окно.
+ * @param {string|number} orderId заказ гифт-карт
+ * @param {string} imageBase64 картинка карты (JPEG)
+ * @param {(shop: string, path: string, options: object) => Promise<{id: string}>} request запрос к бэкенду
+ * @returns {Promise<boolean>} false — не получилось, пусть сработает обычный способ
+ */
+export const shareInTelegram = async (orderId, imageBase64, request) => {
+  const app = window.Telegram.WebApp
+  try {
+    const { id } = await request('cards', SHARE_PATH, {
+      method: 'POST',
+      body: { order_id: String(orderId), image: imageBase64 },
+      headers: { 'x-telegram-init-data': app.initData },
+    })
+    if (typeof id !== 'string' || !id) return false
+    app.shareMessage(id)
+    return true
+  } catch (error) {
+    // функция выключена на сервере (503), заказ не найден, Telegram отказал — делимся по-старому
+    console.error('Не удалось подготовить сообщение Telegram', error)
+    return false
+  }
 }
 
 const shareText = (gift) =>

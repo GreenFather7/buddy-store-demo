@@ -1,5 +1,5 @@
-import { ApiError, request } from './api.js?v=1795419782'
-import { BRANDS } from './brands.js?v=1795419782'
+import { ApiError, request } from './api.js?v=1795419966'
+import { BRANDS } from './brands.js?v=1795419966'
 import {
   ORDER_STATE,
   flagUrl,
@@ -13,7 +13,7 @@ import {
   normalizeUsername,
   parseIntInRange,
   trimDecimals,
-} from './lib.js?v=1795419782'
+} from './lib.js?v=1795419966'
 
 const STARS_MIN = 50
 const STARS_MAX = 5000

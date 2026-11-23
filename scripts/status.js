@@ -1,13 +1,13 @@
-import { ApiError } from './api.js?v=1795419782'
-import { CONFIG } from './config.js?v=1795419782'
-import { BRANDS } from './brands.js?v=1795419782'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795419782'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795419782'
-import { PRODUCTS, checkOrder } from './products.js?v=1795419782'
-import { createGiftPreview } from './gift-preview.js?v=1795419782'
-import { revealCode, startScramble } from './codefx.js?v=1795419782'
-import { giftLink, validGift } from './gift-link.js?v=1795419782'
-import { logoColor, renderGiftImage, shareGift } from './gift-share.js?v=1795419782'
+import { ApiError, request } from './api.js?v=1795419966'
+import { CONFIG } from './config.js?v=1795419966'
+import { BRANDS } from './brands.js?v=1795419966'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795419966'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795419966'
+import { PRODUCTS, checkOrder } from './products.js?v=1795419966'
+import { createGiftPreview } from './gift-preview.js?v=1795419966'
+import { revealCode, startScramble } from './codefx.js?v=1795419966'
+import { giftLink, validGift } from './gift-link.js?v=1795419966'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795419966'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -186,9 +186,13 @@ const shareButton = (order, codes) => {
   const gift = validGift({ ...order.summary, codes })
   if (!gift) return null
   let image = null
+  let imageBase64 = null
+  // В Telegram сообщение готовит бот по заказу из базы — в тестовом режиме заказов там нет.
+  const isTelegramShare = !CONFIG.demo && order.ref?.shop === 'cards' && canShareInTelegram()
   renderGiftImage(gift)
-    .then((file) => {
+    .then(async (file) => {
       image = file
+      if (file && isTelegramShare) imageBase64 = await imageToBase64(file)
     })
     .catch((error) => console.error('Картинка карты не нарисовалась', error))
   const button = el('button', {
@@ -196,6 +200,12 @@ const shareButton = (order, codes) => {
     type: 'button',
     text: SHARE_LABEL,
     onClick: async () => {
+      if (isTelegramShare && imageBase64) {
+        button.disabled = true
+        const isShared = await shareInTelegram(order.ref.orderId, imageBase64, request)
+        button.disabled = false
+        if (isShared) return
+      }
       const result = await shareGift(gift, giftLink(gift, window.location.href), image)
       if (!SHARE_RESULT[result]) return
       button.textContent = SHARE_RESULT[result]
