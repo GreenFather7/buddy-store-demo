@@ -1,20 +1,20 @@
-import { ApiError } from './api.js?v=1795419966'
-import { BRANDS } from './brands.js?v=1795419966'
-import { CONFIG } from './config.js?v=1795419966'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795419966'
-import { ensureFreshBuild } from './fresh.js?v=1795419966'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795419966'
-import { createHero, heroGlyph } from './hero.js?v=1795419966'
-import { mixHex } from './hero-math.js?v=1795419966'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795419966'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795419966'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795419966'
-import { readGiftLink } from './gift-link.js?v=1795419966'
-import { hapticError, initTelegram } from './telegram.js?v=1795419966'
-import { setAmount } from './odometer.js?v=1795419966'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795419966'
-import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795419966'
-import { settleDemoOrder } from './mock.js?v=1795419966'
+import { ApiError } from './api.js?v=1795420376'
+import { BRANDS } from './brands.js?v=1795420376'
+import { CONFIG } from './config.js?v=1795420376'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795420376'
+import { ensureFreshBuild } from './fresh.js?v=1795420376'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795420376'
+import { createHero, heroGlyph } from './hero.js?v=1795420376'
+import { mixHex } from './hero-math.js?v=1795420376'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795420376'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795420376'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795420376'
+import { readGiftLink } from './gift-link.js?v=1795420376'
+import { hapticError, initTelegram } from './telegram.js?v=1795420376'
+import { setAmount } from './odometer.js?v=1795420376'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795420376'
+import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795420376'
+import { settleDemoOrder } from './mock.js?v=1795420376'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -43,6 +43,8 @@ const payOptionsEl = root.querySelector('[data-pay-options]')
 const errorEl = root.querySelector('[data-error]')
 const submitEl = root.querySelector('[data-submit]')
 const submitLabelEl = root.querySelector('[data-submit-label]')
+const noteEl = el('p', { class: 'order__note' })
+submitEl.after(noteEl)
 const statusEl = root.querySelector('[data-status]')
 const titleEl = document.querySelector('.store__title')
 const hero = createHero(document.querySelector('[data-hero]'))
@@ -98,19 +100,19 @@ const updateSubmit = () => {
   const amount = price && /\d/.test(price) ? price : ''
   const wordEl = submitLabelEl.querySelector('.pay-word')
   const hadAmount = Boolean(amountEl.dataset.value)
-  // Пока количество набирают вручную (стёрли «50», набирают «5», «50», «500») или у гифт-карты
-  // сменили страну и номинал ещё не выбран, цены нет. В том же разделе прежняя надпись и сумма
-  // остаются приглушёнными — кнопка не мигает «Купить …», и новая сумма прокручивается от старой.
-  // При смене раздела сумма убирается.
-  const label = state.product.payLabel?.(state.values, state.optionData) ?? { text: PAY_WORD }
-  // старая цена ещё в памяти, а номинал в новой стране не выбран — это тоже «ждём»
-  // и цена посчитана ещё для прежнего выбора — надпись и сумма меняются вместе, а не по очереди
-  const isWaiting = !amount || Boolean(label.isPartial) || quotedSignature !== priceSignature()
+  // Пока количество набирают вручную (стёрли «50», набирают «5», «50», «500») или выбор меняется,
+  // в том же разделе прежние надпись, сумма и строка под кнопкой остаются приглушёнными,
+  // и новая сумма прокручивается от старой. При смене раздела сумма убирается.
+  const word = state.product.payWord ?? PAY_WORD
+  const note = state.product.payNote?.(state.values, state.optionData) ?? null
+  // Ждём новую цену: её ещё нет, у гифт-карты выбор не собран (сменили страну, номинал не выбран)
+  // или цена посчитана для прежнего выбора. Надпись, сумма и строка под кнопкой меняются вместе.
+  const isWaiting = !amount || (Boolean(state.product.payNote) && !note) || quotedSignature !== priceSignature()
   const isTyping = isWaiting && hadAmount && amountEl.dataset.forProduct === state.product.id
-  amountEl.classList.toggle('pay-amount--stale', isTyping)
-  wordEl.classList.toggle('pay-amount--stale', isTyping)
+  ;[amountEl, wordEl, noteEl].forEach((node) => node.classList.toggle('pay-amount--stale', isTyping))
   if (isTyping) return
-  renderPayWord(wordEl, label, amount)
+  if (wordEl.textContent !== word) wordEl.textContent = word
+  renderPayNote(note)
   setAmount(amountEl, amount, isAnimated && hadAmount)
   amountEl.dataset.forProduct = state.product.id
   amountEl.hidden = !amount
@@ -122,16 +124,15 @@ const updateSubmit = () => {
 }
 
 /**
- * Слово перед суммой: «Оплатить» или то, что собрал покупатель (у гифт-карт — флаг, сервис, номинал).
- * Перерисовывается только при смене надписи — флаг не мигает от каждого обновления цены.
+ * Серая строка под кнопкой: что собрал покупатель гифт-карты («🇹🇷 PlayStation · Турция · 1 500 TL»).
+ * У остальных разделов пустая, но место держит — экран не меняет высоту при переключении.
+ * Перерисовывается только при смене текста — флаг не мигает.
  */
-const renderPayWord = (wordEl, label, amount) => {
-  // у гифт-карты точка отделяет номинал от цены («PlayStation 1 500 TL · 760 ₽»)
-  const text = label.flag && amount ? `${label.text} ·` : label.text
-  const key = `${label.flag ?? ''}|${text}`
-  if (wordEl.dataset.key === key) return
-  wordEl.dataset.key = key
-  wordEl.replaceChildren(label.flag ? flagImage(label.flag) : '', text)
+const renderPayNote = (note) => {
+  const key = note ? `${note.flag ?? ''}|${note.text}` : ''
+  if (noteEl.dataset.key === key) return
+  noteEl.dataset.key = key
+  noteEl.replaceChildren(...(note ? [note.flag ? flagImage(note.flag) : '', note.text] : []))
 }
 
 /** Надпись не переносится: если на узком телефоне не влезает, кегль на кнопке чуть меньше. */
@@ -763,7 +764,7 @@ const init = () => {
   })
   form.addEventListener('submit', submit)
   if (CONFIG.demo) {
-    mountBalance(submitEl)
+    mountBalance(noteEl)
     // розыгрыш NFT пока скрыт с главного экрана (готовый модуль — raffle.js); вернуть — раскомментировать
     // mountRaffle(submitEl, () => selectProduct(STARS_PRODUCT))
   }

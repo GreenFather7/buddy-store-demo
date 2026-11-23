@@ -1,5 +1,5 @@
-import { ApiError, request } from './api.js?v=1795419966'
-import { BRANDS } from './brands.js?v=1795419966'
+import { ApiError, request } from './api.js?v=1795420376'
+import { BRANDS } from './brands.js?v=1795420376'
 import {
   ORDER_STATE,
   flagUrl,
@@ -13,7 +13,7 @@ import {
   normalizeUsername,
   parseIntInRange,
   trimDecimals,
-} from './lib.js?v=1795419966'
+} from './lib.js?v=1795420376'
 
 const STARS_MIN = 50
 const STARS_MAX = 5000
@@ -299,14 +299,16 @@ export const loadCardServices = async () => {
 const cards = {
   id: 'cards',
   doneText: 'Ваш код',
-  // На кнопке — что собрал покупатель: флаг страны, сервис и номинал («🇹🇷 PlayStation 1 500 TL»).
-  // Название страны не пишем — его заменяет флаг, иначе надпись не влезает в одну строку.
-  payLabel: (values, options) => {
+  // нигде больше не сказано, что покупается именно гифт-карта (код), — говорим на кнопке
+  payWord: 'Купить гифт-карту',
+  // Под кнопкой серой строкой — что собрал покупатель: «🇹🇷 PlayStation · Турция · 1 500 TL».
+  // null — выбор ещё не собран (страна сменилась, номинал не выбран).
+  payNote: (values, options) => {
     const brand = BRANDS[values.service]?.label
     const nominal = options.voucher?.short_name || options.voucher?.name
-    if (!brand) return { text: 'Купить гифт-карту', isPartial: true }
-    if (!nominal) return { text: `Купить ${brand}`, isPartial: true }
-    return { text: `${brand} ${nominal}`, flag: flagUrl(options.region?.code) }
+    if (!brand || !nominal) return null
+    const region = options.region?.label
+    return { text: [brand, region, nominal].filter(Boolean).join(' · '), flag: flagUrl(options.region?.code) }
   },
   methods: ['sbp', 'usdt'],
   fields: [

@@ -4,7 +4,7 @@
 // Для гифт-карт и разделов без своей анимации в то же движение подставляется другой значок.
 // В круге — аватар получателя из Telegram, пока его нет — картинка Buddy.
 
-import { loopFrame, mixHex, valueAt } from './hero-math.js?v=1795419966'
+import { loopFrame, mixHex, valueAt } from './hero-math.js?v=1795420376'
 
 const ANIMATION_URL = (name) => `assets/hero/${name}.json`
 const GLYPH_GRID = 24
