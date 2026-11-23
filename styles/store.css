@@ -551,7 +551,8 @@ select.field__input {
   flex: none;
   min-width: calc((100% - 3 * 0.5rem) / 4);
   padding-inline: 0.25rem;
-  font-size: 1rem;
+  /* кегль как у регионов, разделов и шаблонов звёзд — у всех капсул выбора один */
+  font-size: 0.875rem;
   white-space: nowrap;
 }
 
