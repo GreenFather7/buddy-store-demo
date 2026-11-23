@@ -1787,3 +1787,14 @@ p.raffle-sheet__tickets--in {
   max-width: none;
   white-space: nowrap;
 }
+
+/* подарок на экране успеха — ровно в размер значка итога (как круг загрузки до него),
+   чтобы не залезать на заголовок «Подарок отправлен» и не сдвигать экран */
+.status__mark--gift .status__gift {
+  width: 100%;
+  height: 100%;
+}
+
+.status__mark--gift .gift-preview__emoji {
+  font-size: 3rem;
+}
