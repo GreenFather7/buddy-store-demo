@@ -1,15 +1,15 @@
-import { ApiError, request } from './api.js?v=1795438752'
-import { CONFIG } from './config.js?v=1795438752'
-import { BRANDS } from './brands.js?v=1795438752'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795438752'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795438752'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795438752'
-import { createGiftPreview } from './gift-preview.js?v=1795438752'
-import { revealCode, startScramble } from './codefx.js?v=1795438752'
-import { RAFFLE_MIN_TICKETS, rafflePrizeLink, ticketsFor } from './raffle.js?v=1795438752'
-import { mixHex } from './hero-math.js?v=1795438752'
-import { giftLink, validGift } from './gift-link.js?v=1795438752'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795438752'
+import { ApiError, request } from './api.js?v=1795439095'
+import { CONFIG } from './config.js?v=1795439095'
+import { BRANDS } from './brands.js?v=1795439095'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795439095'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795439095'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795439095'
+import { createGiftPreview } from './gift-preview.js?v=1795439095'
+import { revealCode, startScramble } from './codefx.js?v=1795439095'
+import { RAFFLE_MIN_TICKETS, rafflePrizeLink, ticketsFor } from './raffle.js?v=1795439095'
+import { mixHex } from './hero-math.js?v=1795439095'
+import { giftLink, validGift } from './gift-link.js?v=1795439095'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795439095'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -69,7 +69,8 @@ const copyButton = (label, value) =>
     },
   })
 
-const COPY_HINT = 'нажмите, чтобы скопировать'
+const COPY_HINT = '⧉ нажмите, чтобы скопировать'
+const COPIED_HINT = '✓ Код скопирован'
 
 /** Заголовок над картой гифт-карты: что сейчас с заказом. Подсказка на самой карте — только «нажмите, чтобы скопировать». */
 // У каждого этапа заголовок и одна строка пояснения — так карта под ними не прыгает,
@@ -98,6 +99,11 @@ const statusTitle = (text) =>
       .filter(Boolean),
   )
 
+/** Короткий отклик карты на копирование и вибрация «успех» в Telegram. */
+const CARD_TAP = [{ transform: 'scale(1)' }, { transform: 'scale(0.985)' }, { transform: 'scale(1)' }]
+const CARD_TAP_MS = 260
+const hapticSuccess = () => window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.('success')
+
 const isInTelegram = () => document.documentElement.classList.contains('is-telegram')
 
 const cardHeading = (stage, brand) => {
@@ -108,7 +114,8 @@ const cardHeading = (stage, brand) => {
 /**
  * Карта гифт-карты: фирменные цвета сервиса, номинал, регион и код.
  * Пока код выпускается (codes пустой), его символы перебираются; когда код пришёл —
- * они по очереди встают на место, и появляется кнопка «Скопировать код».
+ * они по очереди встают на место. Код копируется нажатием на любое место карты
+ * (отдельной кнопки нет — её заменяет заметная подсказка и отклик «✓ Код скопирован»).
  * @param {'issuing'|'delayed'} [waiting] почему кода ещё нет
  * @param {{ isReceived?: boolean }} [options] карту открыл получатель подарка — без «Поделиться»
  */
@@ -120,14 +127,28 @@ const codeCard = (order, codes, waiting = 'issuing', { isReceived = false } = {}
   // пока кода нет, место подсказки пустое — карта не меняет высоту, когда код появится
   const hint = el('p', { class: 'code-card__hint', text: isReady ? COPY_HINT : '\u00a0' })
   const copy = async (value) => {
-    hint.textContent = (await copyText(value)) ? 'скопировано' : 'выделите и скопируйте вручную'
+    const isCopied = await copyText(value)
+    hint.textContent = isCopied ? COPIED_HINT : 'выделите и скопируйте вручную'
+    hint.classList.toggle('code-card__hint--done', isCopied)
+    if (isCopied) {
+      hapticSuccess()
+      card.animate(CARD_TAP, { duration: CARD_TAP_MS, easing: 'ease-out' })
+    }
     setTimeout(() => {
       hint.textContent = COPY_HINT
+      hint.classList.remove('code-card__hint--done')
     }, COPIED_FEEDBACK_MS)
   }
   const codeNodes = isReady
     ? codes.map((code) => {
-        const button = el('button', { class: 'code-card__code', type: 'button', onClick: () => copy(code) })
+        const button = el('button', {
+          class: 'code-card__code',
+          type: 'button',
+          onClick: (event) => {
+            event.stopPropagation() // не копировать заодно и все коды по нажатию на карту
+            copy(code)
+          },
+        })
         revealCode(button, code)
         return button
       })
@@ -155,6 +176,16 @@ const codeCard = (order, codes, waiting = 'issuing', { isReceived = false } = {}
   ])
   card.style.setProperty('--logo-color', logoColor(brandId))
   if (!isReady) return [...cardHeading(waiting, brand), paintBrand(card, brand)]
+  // готовая карта целиком — кнопка «скопировать»: нажатие в любом месте копирует код
+  card.setAttribute('role', 'button')
+  card.setAttribute('tabindex', '0')
+  card.setAttribute('aria-label', `Скопировать код ${brand.label}`)
+  card.addEventListener('click', () => copy(codes.join('\n')))
+  card.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
+    copy(codes.join('\n'))
+  })
   const activation = activationLink(brandId, codes[0])
   const activate =
     activation &&
@@ -176,12 +207,15 @@ const codeCard = (order, codes, waiting = 'issuing', { isReceived = false } = {}
         }
       },
     })
-  const copyAll = el('button', {
-    class: `btn ${activate ? 'btn--ghost' : 'code-card__copy'}`,
-    type: 'button',
-    text: 'Скопировать код',
-    onClick: () => copy(codes.join('\n')),
-  })
+  // один код копируется нажатием на карту; кнопка нужна, только когда кодов несколько
+  const copyAll =
+    codes.length > 1 &&
+    el('button', {
+      class: `btn ${activate ? 'btn--ghost' : 'code-card__copy'}`,
+      type: 'button',
+      text: 'Скопировать все коды',
+      onClick: () => copy(codes.join('\n')),
+    })
   ;[activate, copyAll].filter(Boolean).forEach((button) => {
     button.style.setProperty('--brand-from', brand.from)
     button.style.setProperty('--brand-to', brand.to)

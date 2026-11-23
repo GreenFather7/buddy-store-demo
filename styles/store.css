@@ -2022,3 +2022,25 @@ p.raffle-sheet__tickets--in {
   background: none;
   color: #ffd06b;
 }
+
+/* Готовая карта целиком копирует код: курсор-рука, лёгкий отклик на нажатие,
+   подсказка заметнее, после копирования — зелёная «✓ Код скопирован». */
+.code-card--ready[role="button"] {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.code-card--ready[role="button"]:focus-visible {
+  outline: 2px solid var(--brand-to);
+  outline-offset: 3px;
+}
+
+.code-card--ready .code-card__hint {
+  color: var(--color-text-soft);
+  font-weight: 500;
+  transition: color var(--duration-fast);
+}
+
+.code-card--ready .code-card__hint.code-card__hint--done {
+  color: #4ade80;
+}
