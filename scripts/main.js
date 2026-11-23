@@ -1,20 +1,20 @@
-import { ApiError } from './api.js?v=1795421377'
-import { BRANDS } from './brands.js?v=1795421377'
-import { CONFIG } from './config.js?v=1795421377'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795421377'
-import { ensureFreshBuild } from './fresh.js?v=1795421377'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795421377'
-import { createHero, heroGlyph } from './hero.js?v=1795421377'
-import { mixHex } from './hero-math.js?v=1795421377'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795421377'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795421377'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795421377'
-import { readGiftLink } from './gift-link.js?v=1795421377'
-import { hapticError, initTelegram } from './telegram.js?v=1795421377'
-import { setAmount } from './odometer.js?v=1795421377'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795421377'
-import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795421377'
-import { settleDemoOrder } from './mock.js?v=1795421377'
+import { ApiError } from './api.js?v=1795421689'
+import { BRANDS } from './brands.js?v=1795421689'
+import { CONFIG } from './config.js?v=1795421689'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795421689'
+import { ensureFreshBuild } from './fresh.js?v=1795421689'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795421689'
+import { createHero, heroGlyph } from './hero.js?v=1795421689'
+import { mixHex } from './hero-math.js?v=1795421689'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795421689'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795421689'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795421689'
+import { readGiftLink } from './gift-link.js?v=1795421689'
+import { hapticError, initTelegram } from './telegram.js?v=1795421689'
+import { setAmount } from './odometer.js?v=1795421689'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795421689'
+import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795421689'
+import { settleDemoOrder } from './mock.js?v=1795421689'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -460,7 +460,7 @@ const optionButton = (field, option, group) => {
   const button = el(
     'button',
     {
-      class: `choice${field.variant ? ` choice--${field.variant}` : ''}`,
+      class: `choice${field.variant ? ` choice--${field.variant}` : ''}${option.accent ? ' choice--accent' : ''}`,
       type: 'button',
       role: 'radio',
       'aria-checked': 'false',

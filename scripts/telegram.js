@@ -1,9 +1,9 @@
 // Запуск внутри Telegram как мини-приложение: разворачиваемся на весь экран.
 // Скрипт Telegram подгружается только там — обычным посетителям сайта он не нужен.
 
-import { isTelegramLaunch } from './lib.js?v=1795421377'
+import { isTelegramLaunch } from './lib.js?v=1795421689'
 
-const SDK_URL = 'scripts/vendor/telegram-web-app.js?v=1795421377'
+const SDK_URL = 'scripts/vendor/telegram-web-app.js?v=1795421689'
 const APP_COLOR = '#151517'
 const FULLSCREEN_MIN_VERSION = '8.0'
 /** На компьютере полноэкранный режим закрывает весь монитор — включаем только на телефонах. */

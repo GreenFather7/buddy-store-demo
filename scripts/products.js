@@ -1,5 +1,5 @@
-import { ApiError, request } from './api.js?v=1795421377'
-import { BRANDS } from './brands.js?v=1795421377'
+import { ApiError, request } from './api.js?v=1795421689'
+import { BRANDS } from './brands.js?v=1795421689'
 import {
   ORDER_STATE,
   flagUrl,
@@ -13,7 +13,7 @@ import {
   normalizeUsername,
   parseIntInRange,
   trimDecimals,
-} from './lib.js?v=1795421377'
+} from './lib.js?v=1795421689'
 
 const STARS_MIN = 50
 const STARS_MAX = 5000
@@ -441,7 +441,7 @@ const gta = {
     {
       key: 'edition',
       type: 'choice',
-      variant: 'nominal',
+      variant: 'edition',
       label: 'Издание',
       dependsOn: ['region'],
       options: async ({ region }) => {
@@ -452,6 +452,8 @@ const gta = {
             value: `${platform}:${edition.edition}`,
             label: edition.label,
             logo: BRANDS[platform].path,
+            // старшее издание выделено золотым — его видно среди остальных
+            accent: edition.edition === 'ultimate',
             data: { ...edition, platform, service_id: found.service_id },
           }))
         })

@@ -5,5 +5,5 @@
 // Обычным посетителям сайта ничего из этого не нужно.
 if (/(^#|&)tgWebApp(Data|Version|Platform)=/.test(window.location.hash)) {
   document.documentElement.classList.add('is-telegram')
-  document.write('<script src="scripts/vendor/telegram-web-app.js?v=1795421377"><\/script>')
+  document.write('<script src="scripts/vendor/telegram-web-app.js?v=1795421689"><\/script>')
 }
