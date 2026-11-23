@@ -1,15 +1,15 @@
-import { ApiError, request } from './api.js?v=1795437701'
-import { CONFIG } from './config.js?v=1795437701'
-import { BRANDS } from './brands.js?v=1795437701'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795437701'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795437701'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795437701'
-import { createGiftPreview } from './gift-preview.js?v=1795437701'
-import { revealCode, startScramble } from './codefx.js?v=1795437701'
-import { RAFFLE_MIN_TICKETS, rafflePrizeLink, rafflePrizeName, ticketsFor, ticketsWord } from './raffle.js?v=1795437701'
-import { mixHex } from './hero-math.js?v=1795437701'
-import { giftLink, validGift } from './gift-link.js?v=1795437701'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795437701'
+import { ApiError, request } from './api.js?v=1795438137'
+import { CONFIG } from './config.js?v=1795438137'
+import { BRANDS } from './brands.js?v=1795438137'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795438137'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795438137'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795438137'
+import { createGiftPreview } from './gift-preview.js?v=1795438137'
+import { revealCode, startScramble } from './codefx.js?v=1795438137'
+import { RAFFLE_MIN_TICKETS, rafflePrizeLink, rafflePrizeName, ticketsFor, ticketsWord } from './raffle.js?v=1795438137'
+import { mixHex } from './hero-math.js?v=1795438137'
+import { giftLink, validGift } from './gift-link.js?v=1795438137'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795438137'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -439,6 +439,51 @@ const rafflePlaceholder = (order) => {
   return placeholder
 }
 
+// ── Смена заголовка ─────────────────────────────────────────────────
+// «Оплата получена · Выпускаем код» → «Gift-карта готова · Скопируйте…»: прежние строки мягко
+// тают и уходят вверх, новые проявляются снизу. Строки одной высоты — ниже ничего не сдвигается.
+const HEADING_OUT = [
+  { opacity: 1, transform: 'none', filter: 'blur(0)' },
+  { opacity: 0, transform: 'translateY(-0.375rem)', filter: 'blur(3px)' },
+]
+const HEADING_IN = [
+  { opacity: 0, transform: 'translateY(0.5rem)', filter: 'blur(4px)' },
+  { opacity: 1, transform: 'none', filter: 'blur(0)' },
+]
+const HEADING_OUT_MS = 200
+const HEADING_IN_MS = 460
+const HEADING_TEXT_DELAY_MS = 70
+
+/** Заголовок и строка под ним, если они стоят первыми на экране. */
+const headingOf = (container) => {
+  const title = container.querySelector(':scope > .status__title')
+  const text = title?.nextElementSibling?.classList.contains('status__text') ? title.nextElementSibling : null
+  return title ? { title, text } : null
+}
+
+const swapHeading = (previous, next) => {
+  const isSame = !previous || !next || previous.title.textContent === next.title.textContent
+  if (isSame || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  const pairs = [[previous.title, next.title], [previous.text, next.text]].filter(([before, after]) => before && after)
+  // на миг возвращаем прежние строки на их место — они растворяются, затем встают новые
+  pairs.forEach(([before, after]) => after.replaceWith(before))
+  const fading = pairs.map(([before]) =>
+    before.animate(HEADING_OUT, { duration: HEADING_OUT_MS, easing: 'ease-in', fill: 'forwards' }).finished,
+  )
+  Promise.all(fading).then(() => {
+    pairs.forEach(([before, after], index) => {
+      if (!before.isConnected) return // экран уже перерисован или закрыт
+      before.replaceWith(after)
+      after.animate(HEADING_IN, {
+        duration: HEADING_IN_MS,
+        delay: index * HEADING_TEXT_DELAY_MS,
+        easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)',
+        fill: 'backwards',
+      })
+    })
+  })
+}
+
 /** «Поделиться» и «Пригласить» — в один ряд половинками, а не двумя широкими кнопками друг под другом. */
 const pairSecondary = (container) => {
   const secondary = [...container.querySelectorAll(':scope > .status__secondary')]
@@ -510,6 +555,7 @@ export const showStatus = (container, order, onClose) => {
       // (пока код выпускается — невидимой копией), иначе карта съехала бы вниз, когда код готов.
       items.splice(CARD_HEADING_SIZE, 0, raffle ?? rafflePlaceholder(order))
     }
+    const previousHeading = headingOf(container)
     container.replaceChildren(
       ...[
         ...items,
@@ -526,6 +572,7 @@ export const showStatus = (container, order, onClose) => {
     )
     pairSecondary(container)
     riseIn(container)
+    swapHeading(previousHeading, headingOf(container))
   }
 
   const poll = async () => {
