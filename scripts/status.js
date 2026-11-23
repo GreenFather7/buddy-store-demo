@@ -1,15 +1,15 @@
-import { ApiError, request } from './api.js?v=1795440692'
-import { CONFIG } from './config.js?v=1795440692'
-import { BRANDS } from './brands.js?v=1795440692'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795440692'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795440692'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795440692'
-import { createGiftPreview } from './gift-preview.js?v=1795440692'
-import { revealCode, startScramble } from './codefx.js?v=1795440692'
-import { RAFFLE_MIN_TICKETS, raffleCountdown, rafflePrizeImage, rafflePrizeLink, ticketsFor } from './raffle.js?v=1795440692'
-import { mixHex } from './hero-math.js?v=1795440692'
-import { giftLink, validGift } from './gift-link.js?v=1795440692'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795440692'
+import { ApiError, request } from './api.js?v=1795441095'
+import { CONFIG } from './config.js?v=1795441095'
+import { BRANDS } from './brands.js?v=1795441095'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795441095'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795441095'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795441095'
+import { createGiftPreview } from './gift-preview.js?v=1795441095'
+import { revealCode, startScramble } from './codefx.js?v=1795441095'
+import { RAFFLE_MIN_TICKETS, raffleCountdown, rafflePrizeImage, rafflePrizeLink, rafflePrizeName, ticketsFor } from './raffle.js?v=1795441095'
+import { mixHex } from './hero-math.js?v=1795441095'
+import { giftLink, validGift } from './gift-link.js?v=1795441095'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795441095'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -352,23 +352,24 @@ const failMark = () =>
 // Как в боте звёзд: каждый день в 20:00 (МСК) разыгрывается NFT-подарок, билеты — только за звёзды
 // (1 за 50). Покупателю на сайте без Telegram бэкенд билеты не начисляет — ему не обещаем.
 /**
- * Розыгрыш — минимум слов: заголовок говорит, участвует ли человек, строка под ним —
- * сколько у него билетов и сколько осталось до розыгрыша. Как в боте: 1 билет за 50 звёзд,
- * участвуют от 3 билетов за день, розыгрыш в 20:00 по Москве.
+ * Розыгрыш — минимум слов. Верхняя строка: участвует ли человек; под ней — какой подарок
+ * разыгрывается и сколько у него билетов. Как в боте: 1 билет за 50 звёзд, участвуют от 3 билетов
+ * за день, розыгрыш в 20:00 по Москве. Если билетов нет — как их получить.
  */
 const raffleState = (order) => {
-  if (order.productId !== 'stars') return { title: 'Розыгрыш NFT', tickets: 'за звёзды' }
-  if (!isInTelegram()) return { title: 'Розыгрыш NFT', tickets: 'в Telegram' }
+  if (order.productId !== 'stars') return { title: 'Розыгрыш NFT', tickets: null }
+  if (!isInTelegram()) return { title: 'Розыгрыш в Telegram', tickets: null }
   const tickets = ticketsFor(order.summary?.amount)
-  if (tickets === 0) return { title: 'Розыгрыш NFT', tickets: 'от 50 звёзд' }
-  if (tickets < RAFFLE_MIN_TICKETS) return { title: 'Почти в розыгрыше', tickets: `${tickets} из ${RAFFLE_MIN_TICKETS}`, isCount: true }
-  return { title: 'Вы в розыгрыше NFT', tickets: String(tickets), isCount: true }
+  if (tickets === 0) return { title: 'Билет — от 50 звёзд', tickets: null }
+  const missing = RAFFLE_MIN_TICKETS - tickets
+  if (missing > 0) return { title: `Ещё ${missing} 🎟 до участия`, tickets }
+  return { title: 'Вы в розыгрыше', tickets }
 }
 
 /** Таймер до розыгрыша: тикает раз в секунду, пока строка на экране. */
 const COUNTDOWN_TICK_MS = 1000
 const countdownNode = () => {
-  const node = el('strong', { class: 'raffle-row__timer', text: raffleCountdown() })
+  const node = el('strong', { class: 'draw-card__clock', text: raffleCountdown() })
   const timer = setInterval(() => {
     if (!node.isConnected) {
       clearInterval(timer)
@@ -391,30 +392,33 @@ const openRafflePrize = () => {
 }
 
 /**
- * Розыгрыш после покупки — аккуратной строкой, как в списках Telegram: слева картинка подарка,
- * две строки текста, справа — «+1 за друга» (или стрелка). Нажатие показывает подарок.
+ * Карточка розыгрыша после покупки — два яруса. Верхний (нажатие показывает подарок):
+ * картинка подарка, участвует ли человек, название подарка и билеты, справа — обратный отсчёт.
+ * Нижний, за тонкой линией: «Пригласить друга · +1 🎟» (только в Telegram, где известен свой id).
  */
 const raffleRow = (order) => {
   const invite = inviteButton()
   const state = raffleState(order)
-  return el('div', { class: 'raffle-row' }, [
+  const prize = rafflePrizeName()
+  return el('div', { class: 'draw-card' }, [
     el('button', {
-      class: 'raffle-row__main',
+      class: 'draw-card__main',
       type: 'button',
-      'aria-label': `${state.title}. Билеты: ${state.tickets}. До розыгрыша ${raffleCountdown()}. Посмотреть подарок`,
+      'aria-label': `${state.title}: ${prize}. Билетов: ${state.tickets ?? 0}. До розыгрыша ${raffleCountdown()}. Посмотреть подарок`,
       onClick: openRafflePrize,
     }, [
-      el('img', { class: 'raffle-row__image', src: rafflePrizeImage(), alt: '', width: '40', height: '40' }),
-      el('span', { class: 'raffle-row__text' }, [
-        el('span', { class: 'raffle-row__title', text: state.title }),
-        el('span', { class: 'raffle-row__status' }, [
-          '🎟 ',
-          state.isCount ? el('strong', { text: state.tickets }) : state.tickets,
-          ' · ⏱ ',
-          countdownNode(),
+      el('img', { class: 'draw-card__image', src: rafflePrizeImage(), alt: '', width: '44', height: '44' }),
+      el('span', { class: 'draw-card__text' }, [
+        el('span', { class: 'draw-card__title', text: state.title }),
+        el('span', { class: 'draw-card__prize' }, [
+          prize,
+          state.tickets && el('span', { class: 'draw-card__tickets', text: ` · 🎟 ${state.tickets}` }),
         ]),
       ]),
-      !invite && el('span', { class: 'raffle-row__chevron', 'aria-hidden': 'true', text: '›' }),
+      el('span', { class: 'draw-card__timer' }, [
+        countdownNode(),
+        el('span', { class: 'draw-card__timer-label', text: 'до итогов' }),
+      ]),
     ]),
     invite,
   ])
@@ -482,9 +486,9 @@ const inviteButton = () => {
   if (!link || !telegram?.openTelegramLink) return null
   return el('button', {
     // маленькая кнопка внутри золотой плашки розыгрыша: это про билеты, а не про карту
-    class: 'raffle-row__invite',
+    class: 'draw-card__invite',
     type: 'button',
-    text: '+1 за друга',
+    text: 'Пригласить друга · +1 🎟',
     'aria-label': 'Пригласить друга — плюс один билет в розыгрыш',
     onClick: () => {
       const params = new URLSearchParams({ url: link, text: INVITE_TEXT })
@@ -540,7 +544,7 @@ const swapHeading = (previous, next) => {
 
 /** Кнопки и плашка появляются по очереди, мягко всплывая (порядок — в --rise-index). */
 const riseIn = (container) => {
-  container.querySelectorAll(':scope > .btn, .raffle-row, .status__links').forEach((node, index) => {
+  container.querySelectorAll(':scope > .btn, .draw-card, .status__links').forEach((node, index) => {
     node.classList.add('status__rise')
     node.style.setProperty('--rise-index', String(index))
   })

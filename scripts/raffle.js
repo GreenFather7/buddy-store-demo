@@ -3,8 +3,8 @@
 // Пока у бэкенда нет метода для сайта, данные розыгрыша есть только в тестовом режиме:
 // приз — мишка из анимаций мини-приложения, билеты копятся за тестовые покупки звёзд.
 
-import { el } from './dom.js?v=1795440692'
-import { playLottie } from './gift-preview.js?v=1795440692'
+import { el } from './dom.js?v=1795441095'
+import { playLottie } from './gift-preview.js?v=1795441095'
 
 const RAFFLE_HOUR = 20
 const STARS_PER_TICKET = 50
@@ -35,6 +35,9 @@ export const rafflePrizeLink = () => DEMO_PRIZE.link
 
 /** Картинка разыгрываемого подарка — для строки розыгрыша после покупки. */
 export const rafflePrizeImage = () => DEMO_PRIZE.image
+
+/** Название разыгрываемого подарка: «Plush Pepe #1». */
+export const rafflePrizeName = () => `${DEMO_PRIZE.title} ${DEMO_PRIZE.number}`
 
 /** Розыгрыш в боте — в 20:00 по Москве (UTC+3, без перехода на летнее время). */
 const MOSCOW_UTC_OFFSET_HOURS = 3

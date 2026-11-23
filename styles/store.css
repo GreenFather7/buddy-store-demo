@@ -2027,27 +2027,26 @@ p.raffle-sheet__tickets--in {
   color: #4ade80;
 }
 
-/* ── Розыгрыш после покупки — строка как в списках Telegram ─────────
-   Спокойный тёмный фон, как у остальных элементов; золото — только число билетов и «+1 за друга». */
-.raffle-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+/* ── Карточка розыгрыша после покупки ──────────────────────────────
+   Два яруса в одной спокойной карточке. Верхний: подарок, статус, отсчёт. Нижний, за тонкой
+   линией: «Пригласить друга · +1 🎟». Золото — только билеты и приглашение. Готовые цвета:
+   color-mix в обводке старые браузеры рисуют белым. */
+.draw-card {
+  display: grid;
   width: 100%;
-  padding: 0.5rem 0.625rem 0.5rem 0.5rem;
+  overflow: hidden;
   border-radius: 1.125rem;
   background: var(--color-surface-2);
   box-shadow: inset 0 0 0 1px var(--color-line);
   text-align: left;
 }
 
-.raffle-row__main {
-  flex: 1 1 auto;
-  min-width: 0;
+.draw-card__main {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0;
+  min-width: 0;
+  padding: 0.625rem 0.875rem 0.625rem 0.625rem;
   border: 0;
   background: none;
   color: inherit;
@@ -2056,73 +2055,99 @@ p.raffle-sheet__tickets--in {
   cursor: pointer;
 }
 
-.raffle-row__image {
+.draw-card__image {
   flex: none;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: 0.75rem;
   object-fit: cover;
 }
 
-.raffle-row__text {
+.draw-card__text {
+  flex: 1 1 auto;
   display: grid;
-  gap: 0.125rem;
+  gap: 0.1875rem;
   min-width: 0;
 }
 
-.raffle-row__title {
+.draw-card__title,
+.draw-card__prize {
   overflow: hidden;
-  color: var(--color-text);
-  font-size: 0.875rem;
-  font-weight: 600;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.raffle-row__status {
-  overflow: hidden;
+.draw-card__title {
+  color: var(--color-text);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.draw-card__prize {
   color: var(--color-text-muted);
   font-size: 0.8125rem;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
-.raffle-row__status strong {
+.draw-card__tickets {
   color: #ffc24d;
   font-weight: 600;
 }
 
-.raffle-row__chevron {
+.draw-card__timer {
   flex: none;
-  margin-left: auto;
-  padding-right: 0.25rem;
-  color: var(--color-text-muted);
-  font-size: 1.25rem;
-  line-height: 1;
+  display: grid;
+  justify-items: end;
+  gap: 0.125rem;
 }
 
-.raffle-row__invite {
-  flex: none;
-  padding: 0.4375rem 0.75rem;
+.draw-card__clock {
+  color: var(--color-text);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.draw-card__timer-label {
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+}
+
+.draw-card__invite {
+  padding: 0.625rem 1rem;
   border: 0;
-  border-radius: var(--radius-pill);
-  background: #2c210f;
+  border-top: 1px solid var(--color-line);
+  background: none;
   color: #ffc24d;
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  white-space: nowrap;
   cursor: pointer;
-  transition: background-color var(--duration-fast), transform var(--duration-fast);
+  transition: background-color var(--duration-fast);
 }
 
-.raffle-row__invite:hover,
-.raffle-row__invite:focus-visible {
-  background: #453212;
+.draw-card__invite:hover,
+.draw-card__invite:focus-visible {
+  background: #1d1709;
 }
 
-.raffle-row__invite:active {
-  transform: scale(0.96);
+/* узкие телефоны: картинка поменьше — текст и отсчёт помещаются целиком */
+@media (max-width: 360px) {
+  .draw-card__main {
+    gap: 0.625rem;
+    padding-right: 0.75rem;
+  }
+
+  .draw-card__image {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.625rem;
+  }
+
+  .draw-card__title,
+  .draw-card__clock {
+    font-size: 0.875rem;
+  }
 }
 
 /* тихие ссылки в одну строку: «🎁 Подарить карту · Новая покупка» */
@@ -2133,31 +2158,3 @@ p.raffle-sheet__tickets--in {
   gap: 0.25rem 1.25rem;
 }
 
-/* узкие телефоны: без картинки подарка (он виден по нажатию) — текст строки помещается целиком */
-@media (max-width: 360px) {
-  .raffle-row {
-    padding-left: 0.875rem;
-  }
-
-  .raffle-row__image {
-    display: none;
-  }
-
-  .raffle-row__invite {
-    padding-inline: 0.625rem;
-  }
-
-  .raffle-row__title {
-    font-size: 0.8125rem;
-  }
-
-  .raffle-row__status {
-    font-size: 0.75rem;
-  }
-}
-
-/* таймер до розыгрыша — цифры не прыгают при каждом тике */
-.raffle-row__status .raffle-row__timer {
-  color: var(--color-text-soft);
-  font-variant-numeric: tabular-nums;
-}
