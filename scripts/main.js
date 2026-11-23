@@ -3,7 +3,7 @@ import { BRANDS } from './brands.js'
 import { CONFIG } from './config.js'
 import { el, flagImage, isSafeLink, logoIcon } from './dom.js'
 import { ensureFreshBuild } from './fresh.js'
-import { createGiftPreview } from './gift-preview.js'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js'
 import { createHero, heroGlyph } from './hero.js'
 import { mixHex } from './hero-math.js'
 import { avatarUrl, describeError, groupThousands } from './lib.js'
@@ -475,6 +475,12 @@ const optionsField = (field) => {
         body.replaceChildren(el('div', { class: 'field__control' }, [select]))
       } else {
         body.replaceChildren(...options.map((option, index) => appear(optionButton(field, option, body), index)))
+        // анимации выбранного варианта (подарок, коробка тарифа) — скачиваем заранее
+        if (field.hasPreview) {
+          const media = options.map((option) => option.preview?.animation).filter(Boolean)
+          if (media.length > 0) preloadAnimations(media)
+          else preloadGifts(options.map((option) => option.value))
+        }
         // тестовый режим: первый вариант (срок, подарок, страна, номинал) выбран сразу
         if (CONFIG.demo && state.values[field.key] === undefined) {
           body.querySelector('[role="radio"]:not(:disabled)')?.click()

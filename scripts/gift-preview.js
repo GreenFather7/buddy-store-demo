@@ -1,6 +1,7 @@
 // Выбранный подарок в правой части строки ввода — со своей анимацией, как в мини-приложении звёзд.
 // Анимации подарков — Lottie из сборки мини-приложения (assets/gifts/<id>.json), два новых — анимированные WebP.
-// Проигрыватель lottie-web подгружается только при первом выборе подарка.
+// Проигрыватель lottie-web и анимации подгружаются заранее, как только открыт раздел (preload…),
+// поэтому выбранный подарок сразу появляется анимированным.
 
 const LOTTIE_URL = 'scripts/vendor/lottie_light.min.js'
 const LOTTIE_GIFT_IDS = new Set(Array.from({ length: 20 }, (_, index) => index + 1))
@@ -21,16 +22,40 @@ const loadLottie = () => {
   return lottieLoading
 }
 
+/** Загруженные анимации: адрес → обещание данных. Скачиваются один раз. */
+const animationCache = new Map()
+
+const loadAnimationData = (url) => {
+  if (!animationCache.has(url)) {
+    const request = fetch(url).then((response) => {
+      if (!response.ok) throw new Error(`анимация ${url}: ${response.status}`)
+      return response.json()
+    })
+    // неудачную загрузку не запоминаем — при следующем выборе попробуем снова
+    request.catch(() => animationCache.delete(url))
+    animationCache.set(url, request)
+  }
+  // lottie-web меняет данные при запуске — каждому показу своя копия
+  return animationCache.get(url).then((data) => structuredClone(data))
+}
+
+/** Заранее скачивает проигрыватель и анимации, чтобы выбранный вариант сразу двигался. */
+export const preloadAnimations = (urls) => {
+  loadLottie().catch(() => {})
+  urls.forEach((url) => loadAnimationData(url).catch(() => {}))
+}
+
+/** То же для подарков: по номерам из списка подарков. */
+export const preloadGifts = (giftIds) =>
+  preloadAnimations(giftIds.map(Number).filter((id) => LOTTIE_GIFT_IDS.has(id)).map(giftJsonUrl))
+
 /**
  * Проигрывает Lottie-анимацию из файла в контейнере (например, NFT-приз розыгрыша).
  * @returns {Promise<{ destroy: () => void } | null>} null — анимацию загрузить не удалось
  */
 export const playLottie = async (container, url) => {
   try {
-    const lottie = await loadLottie()
-    const response = await fetch(url)
-    if (!response.ok) throw new Error(`анимация ${url}: ${response.status}`)
-    const animationData = await response.json()
+    const [lottie, animationData] = await Promise.all([loadLottie(), loadAnimationData(url)])
     return lottie.loadAnimation({ container, renderer: 'svg', loop: true, autoplay: true, animationData })
   } catch (error) {
     console.error(error) // анимация — украшение: остаётся картинка
@@ -105,10 +130,7 @@ export const createGiftPreview = (slot) => {
       showEmoji(gift.emoji)
       if (!LOTTIE_GIFT_IDS.has(giftId)) return
       try {
-        const lottie = await loadLottie()
-        const response = await fetch(giftJsonUrl(giftId))
-        if (!response.ok) throw new Error(`анимация подарка ${giftId}: ${response.status}`)
-        const animationData = await response.json()
+        const [lottie, animationData] = await Promise.all([loadLottie(), loadAnimationData(giftJsonUrl(giftId))])
         if (wanted !== gift.id) return // пока грузилось, выбрали другой подарок
         const stage = document.createElement('span')
         stage.className = 'gift-preview__stage'
