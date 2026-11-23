@@ -1,7 +1,9 @@
-// Обычный (не модульный) скрипт в <head>: внутри Telegram подключает его скрипт (копия на нашем сайте —
-// telegram.org с телефона часто грузится медленно) сразу,
-// синхронно, — чтобы мини-приложение развернулось на весь экран до первой отрисовки,
-// а не после загрузки всего магазина. Обычным посетителям сайта он не нужен.
+// Обычный (не модульный) скрипт в <head>, работает до первой отрисовки.
+// Внутри Telegram сразу включает режим мини-приложения (класс is-telegram прячет шапку сайта,
+// которую иначе накрыли бы кнопки Telegram) и синхронно подключает скрипт Telegram —
+// копию на нашем сайте: telegram.org с телефона часто грузится медленно.
+// Обычным посетителям сайта ничего из этого не нужно.
 if (/(^#|&)tgWebApp(Data|Version|Platform)=/.test(window.location.hash)) {
-  document.write('<script src="scripts/vendor/telegram-web-app.js"><\/script>')
+  document.documentElement.classList.add('is-telegram')
+  document.write('<script src="scripts/vendor/telegram-web-app.js?v=1795418361"><\/script>')
 }
