@@ -172,15 +172,18 @@ const ROUTES = {
       ['jp', 'Япония'],
     ].map(([id, name]) => ({ id, region_code: id.toUpperCase(), region_name: name, is_available: true })),
   }),
-  'cards GET /api/vouchers/list': ({ query }) => ({
-    vouchers: [10, 25, 50, 100].map((amount, index) => ({
-      id: String(index),
-      name: `${amount} ${query.service_id.toUpperCase()}`,
-      short_name: `${amount} $`,
-      user_price: amount * 99,
-      in_stock: true,
-    })),
-  }),
+  'cards GET /api/vouchers/list': ({ query }) => {
+    const region = REGION_NOMINALS[query.service_id] ?? REGION_NOMINALS.us
+    return {
+      vouchers: region.values.map((amount, index) => ({
+        id: String(index),
+        name: `${query.type} ${region.format(amount)}`,
+        short_name: region.format(amount),
+        user_price: Math.ceil((amount * region.rub * VOUCHER_MARKUP) / 10) * 10,
+        in_stock: true,
+      })),
+    }
+  },
   'cards POST /api/steam/create_order': ({ body }) => {
     rejectAccount(body.account)
     return cardsOrder(false)
@@ -207,6 +210,23 @@ function cardsOrder(hasCode) {
     payment_link_rub: 'https://example.com/pay-sbp',
     payment_link_usdt: 'https://t.me/CryptoBot',
   }
+}
+
+// Номиналы в валюте страны — какие продают поставщики (Fazer, Bitrefill) в этих регионах.
+// В боевом режиме список приходит от поставщика через /api/vouchers/list, здесь — для вида.
+const VOUCHER_MARKUP = 1.08
+const spaced = (value) => String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+const REGION_NOMINALS = {
+  tr: { values: [250, 500, 1000, 1500], rub: 2.8, format: (v) => `${spaced(v)} TL` },
+  us: { values: [10, 25, 50, 100], rub: 95, format: (v) => `$${v}` },
+  in: { values: [500, 1000, 2000, 5000], rub: 1.15, format: (v) => `₹${spaced(v)}` },
+  ae: { values: [50, 100, 200, 500], rub: 26, format: (v) => `${v} AED` },
+  kz: { values: [2000, 5000, 10000, 20000], rub: 0.19, format: (v) => `${spaced(v)} ₸` },
+  de: { values: [15, 25, 50, 100], rub: 102, format: (v) => `${v} €` },
+  br: { values: [50, 100, 200, 300], rub: 17, format: (v) => `R$ ${v}` },
+  pl: { values: [50, 100, 200, 300], rub: 24, format: (v) => `${v} zł` },
+  gb: { values: [10, 25, 50, 100], rub: 120, format: (v) => `£${v}` },
+  jp: { values: [1500, 3000, 5000, 10000], rub: 0.62, format: (v) => `¥${spaced(v)}` },
 }
 
 export const mockRequest = async (shop, path, { method, query = {}, body = {} }) => {
