@@ -1,15 +1,15 @@
-import { ApiError, request } from './api.js?v=1795439574'
-import { CONFIG } from './config.js?v=1795439574'
-import { BRANDS } from './brands.js?v=1795439574'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795439574'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795439574'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795439574'
-import { createGiftPreview } from './gift-preview.js?v=1795439574'
-import { revealCode, startScramble } from './codefx.js?v=1795439574'
-import { RAFFLE_MIN_TICKETS, rafflePrizeLink, ticketsFor } from './raffle.js?v=1795439574'
-import { mixHex } from './hero-math.js?v=1795439574'
-import { giftLink, validGift } from './gift-link.js?v=1795439574'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795439574'
+import { ApiError, request } from './api.js?v=1795439832'
+import { CONFIG } from './config.js?v=1795439832'
+import { BRANDS } from './brands.js?v=1795439832'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795439832'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795439832'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795439832'
+import { createGiftPreview } from './gift-preview.js?v=1795439832'
+import { revealCode, startScramble } from './codefx.js?v=1795439832'
+import { RAFFLE_MIN_TICKETS, rafflePrizeLink, ticketsFor } from './raffle.js?v=1795439832'
+import { mixHex } from './hero-math.js?v=1795439832'
+import { giftLink, validGift } from './gift-link.js?v=1795439832'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795439832'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -227,7 +227,7 @@ const codeCard = (order, codes, waiting = 'issuing', { isReceived = false } = {}
 }
 
 // не «Поделиться»: человек дарит эту карту другому — так и пишем
-const SHARE_LABEL = 'Подарить карту'
+const SHARE_LABEL = '🎁 Подарить карту'
 const SHARE_RESULT = { copied: 'Ссылка скопирована', failed: 'Не получилось, скопируйте код' }
 
 /**
@@ -248,8 +248,9 @@ const shareButton = (order, codes) => {
     })
     .catch((error) => console.error('Картинка карты не нарисовалась', error))
   const button = el('button', {
-    class: 'btn btn--ghost',
+    class: 'status__link',
     type: 'button',
+    'data-role': 'gift',
     text: SHARE_LABEL,
     onClick: async () => {
       if (isTelegramShare && imageBase64) {
@@ -358,10 +359,10 @@ const RAFFLE_TIME = '20:00'
  * Сам подарок видно по нажатию. Как в боте: участвуют от 3 билетов за день, 1 билет за 50 звёзд.
  */
 const raffleText = (order) => {
-  if (order.productId !== 'stars') return '🎁 Выиграйте NFT — за звёзды'
+  if (order.productId !== 'stars') return '🎁 Розыгрыш NFT'
   if (!isInTelegram()) return '🎁 Розыгрыш NFT — в Telegram'
   const tickets = ticketsFor(order.summary?.amount)
-  if (tickets === 0) return '🎁 Розыгрыш NFT — от 50 звёзд'
+  if (tickets === 0) return '🎁 Розыгрыш NFT · от 50 ⭐'
   const missing = RAFFLE_MIN_TICKETS - tickets
   if (missing > 0) return `🎁 Ещё ${missing} 🎟 — и вы в розыгрыше NFT`
   return `🎁 Вы в розыгрыше NFT · ${tickets} 🎟`
@@ -448,10 +449,10 @@ const inviteButton = () => {
   const telegram = window.Telegram?.WebApp
   if (!link || !telegram?.openTelegramLink) return null
   return el('button', {
-    // золотая, как строка розыгрыша над ней: это про билеты, а не про карту
-    class: 'btn btn--ghost status__invite',
+    // маленькая кнопка внутри золотой плашки розыгрыша: это про билеты, а не про карту
+    class: 'status__invite',
     type: 'button',
-    text: 'Пригласить друга · +1 билет',
+    text: 'Позвать +1 🎟',
     'aria-label': 'Пригласить друга — плюс один билет в розыгрыш',
     onClick: () => {
       const params = new URLSearchParams({ url: link, text: INVITE_TEXT })
@@ -507,7 +508,7 @@ const swapHeading = (previous, next) => {
 
 /** Кнопки и плашка появляются по очереди, мягко всплывая (порядок — в --rise-index). */
 const riseIn = (container) => {
-  container.querySelectorAll('.btn, .status__link, .status__raffle').forEach((node, index) => {
+  container.querySelectorAll(':scope > .btn, .status__raffle-block, .status__links').forEach((node, index) => {
     node.classList.add('status__rise')
     node.style.setProperty('--rise-index', String(index))
   })
@@ -555,25 +556,26 @@ export const showStatus = (container, order, onClose) => {
     lastKey = key
     const isFinal = FINAL_STATES.includes(result.state)
     const isDone = result.state === ORDER_STATE.DONE
-    const items = VIEW[result.state](order, result).filter(Boolean)
-    // после успешной покупки — строка о розыгрыше NFT; нажатие показывает приз в окне Telegram
-    const raffle = isDone ? raffleLine(order) : null
+    const viewItems = VIEW[result.state](order, result).filter(Boolean)
+    // «Подарить карту» уходит из середины экрана вниз — в строку тихих ссылок
+    const gift = viewItems.find((node) => node.dataset?.role === 'gift') ?? null
+    const items = viewItems.filter((node) => node !== gift)
+    // После успешной покупки — одна золотая плашка: что с розыгрышем (нажатие показывает подарок)
+    // и маленькая кнопка «Позвать +1 🎟». Отдельных больших кнопок под это нет.
+    const raffleBlock = isDone
+      ? el('div', { class: 'status__raffle-block' }, [raffleLine(order), inviteButton()].filter(Boolean))
+      : null
     const previousHeading = headingOf(container)
-    container.replaceChildren(
-      ...[
-        ...items,
-        // розыгрыш и приглашение — одним блоком: сначала что происходит, под ним — как получить ещё билет
-        raffle,
-        isDone && inviteButton(),
-        // тихая текстовая ссылка: главное на экране — код и его кнопка
-        el('button', {
-          class: 'status__link',
-          type: 'button',
-          text: isFinal ? 'Новая покупка' : 'Отменить и вернуться',
-          onClick: close,
-        }),
-      ].filter(Boolean),
-    )
+    const links = el('div', { class: 'status__links' }, [
+      gift,
+      el('button', {
+        class: 'status__link',
+        type: 'button',
+        text: isFinal ? 'Новая покупка' : 'Отменить и вернуться',
+        onClick: close,
+      }),
+    ].filter(Boolean))
+    container.replaceChildren(...[...items, raffleBlock, links].filter(Boolean))
     riseIn(container)
     swapHeading(previousHeading, headingOf(container))
   }
