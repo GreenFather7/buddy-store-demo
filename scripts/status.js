@@ -165,29 +165,16 @@ const codeCard = (order, codes, waiting = 'issuing') => {
   return [...cardHeading('ready', brand), paintBrand(card, brand), activate, copyAll].filter(Boolean)
 }
 
-// Кнопка «Активировать» — как в мини-приложении и боте гифт-карт (constans.ACTIVATE_URLS):
-// у App Store, Google Play и Roblox код уходит прямо в ссылку и подставляется сам;
-// у остальных открывается страница ввода кода, а код заранее кладётся в буфер обмена.
+// Кнопка «Активировать» — только у App Store: его страница активации сама подставляет код
+// из ссылки (apps.apple.com/redeem?code=…), и покупателю остаётся подтвердить.
+// У остальных сервисов кнопки нет — код копируется и вводится на их сайте.
 const ACTIVATE_WITH_CODE = {
   app: (code) => `https://apps.apple.com/redeem?code=${encodeURIComponent(code)}`,
-  gplay: (code) => `https://play.google.com/redeem?code=${encodeURIComponent(code)}`,
-  roblox: (code) => `https://www.roblox.com/redeem?code=${encodeURIComponent(code)}`,
-}
-const ACTIVATE_PAGE = {
-  ps: 'https://store.playstation.com/redeem',
-  xbox: 'https://redeem.microsoft.com',
-  nintendo: 'https://ec.nintendo.com/redeem',
-  netflix: 'https://www.netflix.com/redeem',
-  spotify: 'https://www.spotify.com/redeem',
 }
 
-/** Ссылка активации: сам код, если это уже ссылка (так выдаёт Nintendo), иначе — по сервису. */
-const activationLink = (brandId, code) => {
-  if (/^https:\/\//i.test(code)) return { url: code, isFilled: true }
-  if (ACTIVATE_WITH_CODE[brandId]) return { url: ACTIVATE_WITH_CODE[brandId](code), isFilled: true }
-  if (ACTIVATE_PAGE[brandId]) return { url: ACTIVATE_PAGE[brandId], isFilled: false }
-  return null
-}
+/** Ссылка активации с подставленным кодом или null, если у сервиса такой нет. */
+const activationLink = (brandId, code) =>
+  ACTIVATE_WITH_CODE[brandId] ? { url: ACTIVATE_WITH_CODE[brandId](code), isFilled: true } : null
 
 /** Тёмные фирменные цвета (Roblox, Steam) на тёмной карте не видны — у них логотип белый. */
 const WHITE_LOGO_BRANDS = ['roblox', 'steam']
