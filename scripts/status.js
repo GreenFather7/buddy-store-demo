@@ -126,15 +126,62 @@ const codeCard = (order, codes, waiting = 'issuing') => {
     hint,
   ])
   if (!isReady) return [...cardHeading(waiting, brand), paintBrand(card, brand)]
+  const activation = activationLink(brandId, codes[0])
+  const activate =
+    activation &&
+    isSafeLink(activation.url) &&
+    el('a', {
+      class: 'btn code-card__copy',
+      href: activation.url,
+      target: '_blank',
+      rel: 'noopener',
+      text: `Активировать в ${brand.label}`,
+      onClick: (event) => {
+        // страница без подстановки кода: код уже в буфере, остаётся вставить
+        if (!activation.isFilled) copyText(codes[0])
+        // внутри Telegram ссылку открывает сам Telegram — так она точно уйдёт в браузер или App Store
+        const telegram = window.Telegram?.WebApp
+        if (telegram?.openLink) {
+          event.preventDefault()
+          telegram.openLink(activation.url)
+        }
+      },
+    })
   const copyAll = el('button', {
-    class: 'btn code-card__copy',
+    class: `btn ${activate ? 'btn--ghost' : 'code-card__copy'}`,
     type: 'button',
     text: 'Скопировать код',
     onClick: () => copy(codes.join('\n')),
   })
-  copyAll.style.setProperty('--brand-from', brand.from)
-  copyAll.style.setProperty('--brand-to', brand.to)
-  return [...cardHeading('ready', brand), paintBrand(card, brand), copyAll]
+  ;[activate, copyAll].filter(Boolean).forEach((button) => {
+    button.style.setProperty('--brand-from', brand.from)
+    button.style.setProperty('--brand-to', brand.to)
+  })
+  return [...cardHeading('ready', brand), paintBrand(card, brand), activate, copyAll].filter(Boolean)
+}
+
+// Кнопка «Активировать» — как в мини-приложении и боте гифт-карт (constans.ACTIVATE_URLS):
+// у App Store, Google Play и Roblox код уходит прямо в ссылку и подставляется сам;
+// у остальных открывается страница ввода кода, а код заранее кладётся в буфер обмена.
+const ACTIVATE_WITH_CODE = {
+  app: (code) => `https://apps.apple.com/redeem?code=${encodeURIComponent(code)}`,
+  gplay: (code) => `https://play.google.com/redeem?code=${encodeURIComponent(code)}`,
+  roblox: (code) => `https://www.roblox.com/redeem?code=${encodeURIComponent(code)}`,
+}
+const ACTIVATE_PAGE = {
+  ps: 'https://store.playstation.com/redeem',
+  xbox: 'https://redeem.microsoft.com',
+  nintendo: 'https://ec.nintendo.com/redeem',
+  netflix: 'https://www.netflix.com/redeem',
+  spotify: 'https://www.spotify.com/redeem',
+}
+
+/** Ссылка активации: сам код, если это уже ссылка (так выдаёт Nintendo), иначе — по сервису. */
+const activationLink = (brandId, code) => {
+  if (/^https:\/\//i.test(code)) return { url: code, isFilled: true }
+  if (ACTIVATE_WITH_CODE[brandId]) return { url: ACTIVATE_WITH_CODE[brandId](code), isFilled: true }
+  if (ACTIVATE_PAGE[brandId]) return { url: ACTIVATE_PAGE[brandId], isFilled: false }
+  return null
 }
 
 /** Заказ гифт-карты с кодом (не Steam): пока ждём код, показываем карту с перебором. */
