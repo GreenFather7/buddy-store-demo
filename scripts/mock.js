@@ -2,7 +2,7 @@
 // Исход заказа выбирают в окне тестовой оплаты (settleDemoOrder): успех, отказ платежа,
 // ошибка выдачи или задержка. В боевом режиме не используется.
 
-import { ApiError } from './api.js?v=1795421059'
+import { ApiError } from './api.js?v=1795421377'
 
 /** Сколько заказ «отправляется» после оплаты, прежде чем показать итог. */
 const DELIVERY_MS = 1800
@@ -184,6 +184,7 @@ const ROUTES = {
       })),
     }
   },
+  'cards GET /api/gta/offers': ({ query }) => ({ regions: GTA_OFFERS[query.platform] ?? [] }),
   'cards POST /api/steam/create_order': ({ body }) => {
     rejectAccount(body.account)
     return cardsOrder(false)
@@ -227,6 +228,48 @@ const REGION_NOMINALS = {
   pl: { values: [20, 30, 50, 70, 100, 150, 200, 250, 300, 500], rub: 24, format: (v) => `${v} zł` },
   gb: { values: [5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 100, 150], rub: 120, format: (v) => `£${v}` },
   jp: { values: [1000, 1500, 3000, 5000, 10000, 15000, 20000], rub: 0.62, format: (v) => `¥${spaced(v)}` },
+}
+
+// GTA VI: страны, где карта есть хотя бы на одно издание, и для каждого издания — цена игры
+// в магазине и карта, которой на неё хватает. Цены игры — для вида, настоящие берёт бэкенд бота.
+const gtaRegion = (id, name, editions) => ({
+  service_id: `gta-${id}`,
+  region_code: id.toUpperCase(),
+  region_name: name,
+  editions: editions.map(([edition, label, gamePrice, card, rub]) => ({
+    edition,
+    label,
+    game_price: gamePrice,
+    voucher: { id: `${id}-${edition}`, short_name: card, user_price: rub },
+  })),
+})
+const GTA_OFFERS = {
+  ps: [
+    gtaRegion('tr', 'Турция', [
+      ['standard', 'Standard', '3 999 TL', '4 000 TL', 8960],
+      ['ultimate', 'Ultimate', '4 999 TL', '5 000 TL', 11200],
+    ]),
+    gtaRegion('us', 'США', [
+      ['standard', 'Standard', '$69.99', '$75', 7700],
+      ['ultimate', 'Ultimate', '$99.99', '$100', 10260],
+    ]),
+    gtaRegion('in', 'Индия', [
+      ['standard', 'Standard', '₹4 999', '₹5 000', 6210],
+      ['ultimate', 'Ultimate', '₹6 999', '₹7 000', 8690],
+    ]),
+    gtaRegion('pl', 'Польша', [['standard', 'Standard', '349 zł', '350 zł', 9080]]),
+  ],
+  xbox: [
+    gtaRegion('us', 'США', [
+      ['standard', 'Standard', '$69.99', '$75', 7700],
+      ['ultimate', 'Ultimate', '$99.99', '$100', 10260],
+    ]),
+    gtaRegion('br', 'Бразилия', [
+      ['standard', 'Standard', 'R$ 349', 'R$ 350', 6430],
+      ['ultimate', 'Ultimate', 'R$ 499', 'R$ 500', 9180],
+    ]),
+    gtaRegion('tr', 'Турция', [['standard', 'Standard', '3 999 TL', '4 000 TL', 8960]]),
+  ],
 }
 
 export const mockRequest = async (shop, path, { method, query = {}, body = {} }) => {

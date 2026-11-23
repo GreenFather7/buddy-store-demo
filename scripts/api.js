@@ -1,5 +1,5 @@
-import { CONFIG } from './config.js?v=1795421059'
-import { mockRequest } from './mock.js?v=1795421059'
+import { CONFIG } from './config.js?v=1795421377'
+import { mockRequest } from './mock.js?v=1795421377'
 
 const SESSION_HEADER = 'x-guest-session'
 const SESSION_PATH = '/api/web/session'

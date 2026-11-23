@@ -1,5 +1,5 @@
-import { ApiError, request } from './api.js?v=1795421059'
-import { BRANDS } from './brands.js?v=1795421059'
+import { ApiError, request } from './api.js?v=1795421377'
+import { BRANDS } from './brands.js?v=1795421377'
 import {
   ORDER_STATE,
   flagUrl,
@@ -13,7 +13,7 @@ import {
   normalizeUsername,
   parseIntInRange,
   trimDecimals,
-} from './lib.js?v=1795421059'
+} from './lib.js?v=1795421377'
 
 const STARS_MIN = 50
 const STARS_MAX = 5000
@@ -378,7 +378,110 @@ const cards = {
   })),
 }
 
-export const PRODUCTS = Object.freeze({ stars, premium, gram, gifts, steam, cards })
+// ── GTA VI ──────────────────────────────────────────────────────────
+// Как форма GTA VI в боте гифт-карт: продаётся карта PlayStation или Xbox страны — самый дешёвый
+// номинал, которого хватает на издание игры по цене магазина. Страны и издания с подобранной картой
+// отдаёт бэкенд (/api/gta/offers по платформе), покупка — обычный ваучер.
+// Два ряда, как у гифт-карт (экран не меняет высоту): страна, затем издание вместе с платформой
+// (логотип платформы и «Standard» / «Ultimate») — только те, на которые в этой стране есть карта.
+const GTA_PLATFORMS = ['ps', 'xbox']
+
+/** Предложения обеих платформ: [{ platform, regions }]. Платформа без ответа просто пропускается. */
+const gtaOffers = async () => {
+  const results = await Promise.allSettled(
+    GTA_PLATFORMS.map((platform) => request('cards', '/api/gta/offers', { query: { platform } })),
+  )
+  const offers = results.flatMap((result, index) =>
+    result.status === 'fulfilled' ? [{ platform: GTA_PLATFORMS[index], regions: result.value.regions ?? [] }] : [],
+  )
+  if (offers.length === 0) throw results[0].reason
+  return offers
+}
+
+const gta = {
+  id: 'gta',
+  doneText: 'Ваш код',
+  methods: ['sbp', 'usdt'],
+  payHint: (values) => {
+    if (values.region === undefined) return 'Выберите страну'
+    if (values.edition === undefined) return 'Выберите издание'
+    return null
+  },
+  // «🇹🇷 Карта PlayStation 4 000 TL · хватит на Standard» (что это GTA VI — видно по выбранной капсуле)
+  payNote: (_values, options) => {
+    const edition = options.edition
+    if (!edition) return null
+    return {
+      text: `Карта ${BRANDS[edition.platform].label} ${edition.voucher.short_name} · хватит на ${edition.label}`,
+      flag: flagUrl(options.region?.code),
+    }
+  },
+  fields: [
+    {
+      key: 'region',
+      type: 'choice',
+      variant: 'region',
+      label: 'Регион',
+      options: async () => {
+        const offers = await gtaOffers()
+        const byCode = new Map()
+        offers.forEach(({ regions }) =>
+          regions.forEach((region) => {
+            if (!byCode.has(region.region_code)) byCode.set(region.region_code, region)
+          }),
+        )
+        return [...byCode.values()].map((region) => ({
+          value: region.region_code,
+          label: region.region_name,
+          flag: flagUrl(region.region_code),
+          data: { label: region.region_name, code: region.region_code },
+        }))
+      },
+    },
+    {
+      key: 'edition',
+      type: 'choice',
+      variant: 'nominal',
+      label: 'Издание',
+      dependsOn: ['region'],
+      options: async ({ region }) => {
+        const offers = await gtaOffers()
+        return offers.flatMap(({ platform, regions }) => {
+          const found = regions.find((item) => item.region_code === region)
+          return (found?.editions ?? []).map((edition) => ({
+            value: `${platform}:${edition.edition}`,
+            label: edition.label,
+            logo: BRANDS[platform].path,
+            data: { ...edition, platform, service_id: found.service_id },
+          }))
+        })
+      },
+    },
+  ],
+  quote: async (_values, options) => ({
+    sbp: formatRub(options.edition.voucher.user_price),
+    ton: null,
+    usdt: 'по курсу',
+  }),
+  // после оплаты — обычная карта с кодом: логотип платформы, номинал карты и страна
+  summary: (_values, options) => ({
+    brand: options.edition.platform,
+    nominal: options.edition.voucher.short_name,
+    region: options.region?.label ?? '',
+    regionCode: options.region?.code ?? '',
+  }),
+  order: (values, method, options) =>
+    cardsOrder('/api/vouchers/create_order', () => ({
+      type: options.edition.platform,
+      service_id: options.edition.service_id,
+      voucher_id: options.edition.voucher.id,
+    }))(values, method),
+}
+
+export const PRODUCTS = Object.freeze({ stars, premium, gram, gifts, steam, cards, gta })
+
+/** Разделы, где после оплаты выдаётся код карты (экран с картой и кодом). */
+export const CODE_PRODUCTS = ['cards', 'gta']
 
 export const checkOrder = (ref) => (ref.shop === 'cards' ? checkCardsOrder(ref) : checkStarsOrder(ref))
 

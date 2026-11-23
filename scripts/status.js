@@ -1,13 +1,13 @@
-import { ApiError, request } from './api.js?v=1795421059'
-import { CONFIG } from './config.js?v=1795421059'
-import { BRANDS } from './brands.js?v=1795421059'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795421059'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795421059'
-import { PRODUCTS, checkOrder } from './products.js?v=1795421059'
-import { createGiftPreview } from './gift-preview.js?v=1795421059'
-import { revealCode, startScramble } from './codefx.js?v=1795421059'
-import { giftLink, validGift } from './gift-link.js?v=1795421059'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795421059'
+import { ApiError, request } from './api.js?v=1795421377'
+import { CONFIG } from './config.js?v=1795421377'
+import { BRANDS } from './brands.js?v=1795421377'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795421377'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795421377'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795421377'
+import { createGiftPreview } from './gift-preview.js?v=1795421377'
+import { revealCode, startScramble } from './codefx.js?v=1795421377'
+import { giftLink, validGift } from './gift-link.js?v=1795421377'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795421377'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -230,7 +230,7 @@ const activationLink = (brandId, code) =>
 
 
 /** Заказ гифт-карты с кодом (не Steam): пока ждём код, показываем карту с перебором. */
-const isVoucherOrder = (order) => order.productId === 'cards' && Object.hasOwn(BRANDS, String(order.summary?.brand ?? ''))
+const isVoucherOrder = (order) => CODE_PRODUCTS.includes(order.productId) && Object.hasOwn(BRANDS, String(order.summary?.brand ?? ''))
 
 const payLink = (label, url) =>
   isSafeLink(url)

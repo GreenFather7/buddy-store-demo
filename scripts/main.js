@@ -1,20 +1,20 @@
-import { ApiError } from './api.js?v=1795421059'
-import { BRANDS } from './brands.js?v=1795421059'
-import { CONFIG } from './config.js?v=1795421059'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795421059'
-import { ensureFreshBuild } from './fresh.js?v=1795421059'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795421059'
-import { createHero, heroGlyph } from './hero.js?v=1795421059'
-import { mixHex } from './hero-math.js?v=1795421059'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795421059'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795421059'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795421059'
-import { readGiftLink } from './gift-link.js?v=1795421059'
-import { hapticError, initTelegram } from './telegram.js?v=1795421059'
-import { setAmount } from './odometer.js?v=1795421059'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795421059'
-import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795421059'
-import { settleDemoOrder } from './mock.js?v=1795421059'
+import { ApiError } from './api.js?v=1795421377'
+import { BRANDS } from './brands.js?v=1795421377'
+import { CONFIG } from './config.js?v=1795421377'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795421377'
+import { ensureFreshBuild } from './fresh.js?v=1795421377'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795421377'
+import { createHero, heroGlyph } from './hero.js?v=1795421377'
+import { mixHex } from './hero-math.js?v=1795421377'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795421377'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795421377'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795421377'
+import { readGiftLink } from './gift-link.js?v=1795421377'
+import { hapticError, initTelegram } from './telegram.js?v=1795421377'
+import { setAmount } from './odometer.js?v=1795421377'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795421377'
+import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795421377'
+import { settleDemoOrder } from './mock.js?v=1795421377'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -31,6 +31,7 @@ const USDT_COLOR = '#1fb5a8'
 const STARS_PRODUCT = 'stars'
 const GRAM_PRODUCT = 'gram'
 const CARDS_PRODUCT = 'cards'
+const GTA_PRODUCT = 'gta'
 const SERVICE_KEY = 'service'
 /** Тёмные фирменные цвета высветляются, чтобы логотип читался на капсуле. */
 const BRAND_ICON_LIFT = 0.25
@@ -158,7 +159,17 @@ const renderPayNote = (note) => {
   if (noteEl.dataset.key === key) return
   noteEl.dataset.key = key
   noteEl.replaceChildren(...(note ? [note.flag ? flagImage(note.flag) : '', note.text] : []))
+  // новая строка мягко проявляется с лёгким подъёмом — видно, что выбор изменился
+  if (note && !prefersLessMotion.matches) {
+    noteEl.animate(NOTE_IN, { duration: NOTE_IN_MS, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' })
+  }
 }
+
+const NOTE_IN = [
+  { opacity: 0, transform: 'translateY(0.25rem)', filter: 'blur(2px)' },
+  { opacity: 1, transform: 'none', filter: 'none' },
+]
+const NOTE_IN_MS = 360
 
 /** Надпись не переносится: если на узком телефоне не влезает, кегль на кнопке чуть меньше. */
 const fitSubmitLabel = () => {
@@ -221,10 +232,14 @@ const productLook = (productId) => {
   }
 }
 
-/** Сервис, чьи логотипы разлетаются: Steam или выбранная гифт-карта. */
+/** Сервис, чьи логотипы разлетаются: Steam, выбранная гифт-карта или платформа GTA VI. */
+const BRAND_OF_PRODUCT = {
+  steam: () => 'steam',
+  [CARDS_PRODUCT]: () => state.values[SERVICE_KEY],
+  [GTA_PRODUCT]: () => state.optionData.edition?.platform,
+}
 const selectedBrand = () => {
-  const brandId =
-    state.product.id === 'steam' ? 'steam' : state.product.id === CARDS_PRODUCT ? state.values[SERVICE_KEY] : null
+  const brandId = BRAND_OF_PRODUCT[state.product.id]?.() ?? null
   return brandId && Object.hasOwn(BRANDS, brandId) ? { id: brandId, ...BRANDS[brandId] } : null
 }
 
@@ -463,6 +478,7 @@ const optionButton = (field, option, group) => {
     [
       option.flag && flagImage(option.flag),
       option.icon && el('img', { class: 'preset-icon', src: option.icon, alt: '', width: '24', height: '24' }),
+      option.logo && logoIcon(option.logo, 'choice__logo'),
       el('span', { text: option.label }),
       option.sub && el('span', { class: 'pay__price', text: option.sub }),
     ],
@@ -736,7 +752,7 @@ const submit = async (event) => {
   state = { ...state, isBusy: true }
   renderPay()
   try {
-    const result = await state.product.order(state.values, state.method)
+    const result = await state.product.order(state.values, state.method, state.optionData)
     const order = {
       ...result,
       productId: state.product.id,

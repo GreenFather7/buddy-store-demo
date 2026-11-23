@@ -166,6 +166,11 @@
   --product-color: #dfe6ee;
 }
 
+/* GTA VI — закатный розовый */
+.product--gta {
+  --product-color: #ff6fae;
+}
+
 .product:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -1839,4 +1844,19 @@ p.raffle-sheet__tickets--in {
 /* длинная надпись на узком телефоне: кегль чуть меньше, но строка одна */
 .order__submit.order__submit--tight {
   font-size: 0.875rem;
+}
+
+/* GTA VI: в капсуле издания — логотип платформы и «Standard» / «Ultimate» */
+.choice.choice--nominal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+}
+
+.choice__logo {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-text);
 }
