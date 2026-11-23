@@ -3,9 +3,9 @@
 // «Скопировать код». Картинка рисуется заранее, как только код готов: браузер разрешает
 // открыть окно «Поделиться» только сразу по нажатию, ждать отрисовку там нельзя.
 
-import { BRANDS } from './brands.js?v=1795433407'
-import { flagUrl } from './lib.js?v=1795433407'
-import { mixHex } from './hero-math.js?v=1795433407'
+import { BRANDS } from './brands.js?v=1795433458'
+import { flagUrl } from './lib.js?v=1795433458'
+import { mixHex } from './hero-math.js?v=1795433458'
 
 const WIDTH = 1200
 const HEIGHT = 760
@@ -189,7 +189,7 @@ export const shareInTelegram = async (orderId, imageBase64, request) => {
 }
 
 const shareText = (gift) =>
-  `Дарю гифт-карту ${BRANDS[gift.brand].label} ${gift.nominal}${gift.region ? ` (${gift.region})` : ''} 🎁`
+  `Дарю Gift-карту ${BRANDS[gift.brand].label} ${gift.nominal}${gift.region ? ` (${gift.region})` : ''} 🎁`
 
 /**
  * Окно «Поделиться». Вызывать прямо в обработчике нажатия, без ожиданий перед ним.

@@ -1,5 +1,5 @@
-import { ApiError, request } from './api.js?v=1795433407'
-import { BRANDS } from './brands.js?v=1795433407'
+import { ApiError, request } from './api.js?v=1795433458'
+import { BRANDS } from './brands.js?v=1795433458'
 import {
   ORDER_STATE,
   flagUrl,
@@ -13,7 +13,7 @@ import {
   normalizeUsername,
   parseIntInRange,
   trimDecimals,
-} from './lib.js?v=1795433407'
+} from './lib.js?v=1795433458'
 
 const STARS_MIN = 50
 const STARS_MAX = 5000
@@ -314,7 +314,7 @@ const cards = {
     const nominal = options.voucher?.short_name || options.voucher?.name
     if (!brand || !nominal) return null
     const region = options.region?.label
-    const parts = [`Гифт-карта ${brand}`, region, nominal].filter(Boolean)
+    const parts = [`Gift-карта ${brand}`, region, nominal].filter(Boolean)
     return { text: parts.join(' · '), flag: flagUrl(options.region?.code) }
   },
   methods: ['sbp', 'usdt'],
