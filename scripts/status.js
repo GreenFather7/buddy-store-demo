@@ -1,15 +1,15 @@
-import { ApiError, request } from './api.js?v=1795439404'
-import { CONFIG } from './config.js?v=1795439404'
-import { BRANDS } from './brands.js?v=1795439404'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795439404'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795439404'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795439404'
-import { createGiftPreview } from './gift-preview.js?v=1795439404'
-import { revealCode, startScramble } from './codefx.js?v=1795439404'
-import { RAFFLE_MIN_TICKETS, rafflePrizeLink, ticketsFor } from './raffle.js?v=1795439404'
-import { mixHex } from './hero-math.js?v=1795439404'
-import { giftLink, validGift } from './gift-link.js?v=1795439404'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795439404'
+import { ApiError, request } from './api.js?v=1795439574'
+import { CONFIG } from './config.js?v=1795439574'
+import { BRANDS } from './brands.js?v=1795439574'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795439574'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795439574'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795439574'
+import { createGiftPreview } from './gift-preview.js?v=1795439574'
+import { revealCode, startScramble } from './codefx.js?v=1795439574'
+import { RAFFLE_MIN_TICKETS, rafflePrizeLink, ticketsFor } from './raffle.js?v=1795439574'
+import { mixHex } from './hero-math.js?v=1795439574'
+import { giftLink, validGift } from './gift-link.js?v=1795439574'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795439574'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -226,7 +226,8 @@ const codeCard = (order, codes, waiting = 'issuing', { isReceived = false } = {}
   )
 }
 
-const SHARE_LABEL = 'Поделиться'
+// не «Поделиться»: человек дарит эту карту другому — так и пишем
+const SHARE_LABEL = 'Подарить карту'
 const SHARE_RESULT = { copied: 'Ссылка скопирована', failed: 'Не получилось, скопируйте код' }
 
 /**
@@ -247,7 +248,7 @@ const shareButton = (order, codes) => {
     })
     .catch((error) => console.error('Картинка карты не нарисовалась', error))
   const button = el('button', {
-    class: 'btn btn--ghost status__secondary',
+    class: 'btn btn--ghost',
     type: 'button',
     text: SHARE_LABEL,
     onClick: async () => {
@@ -447,11 +448,10 @@ const inviteButton = () => {
   const telegram = window.Telegram?.WebApp
   if (!link || !telegram?.openTelegramLink) return null
   return el('button', {
-    class: 'btn btn--ghost status__secondary',
+    // золотая, как строка розыгрыша над ней: это про билеты, а не про карту
+    class: 'btn btn--ghost status__invite',
     type: 'button',
-    // одна на всю ширину — полная подпись; в ряду с «Поделиться» — короткая (см. pairSecondary)
     text: 'Пригласить друга · +1 билет',
-    'data-short': 'Пригласить · +1 🎟',
     'aria-label': 'Пригласить друга — плюс один билет в розыгрыш',
     onClick: () => {
       const params = new URLSearchParams({ url: link, text: INVITE_TEXT })
@@ -502,18 +502,6 @@ const swapHeading = (previous, next) => {
         fill: 'backwards',
       })
     })
-  })
-}
-
-/** «Поделиться» и «Пригласить» — в один ряд половинками, а не двумя широкими кнопками друг под другом. */
-const pairSecondary = (container) => {
-  const secondary = [...container.querySelectorAll(':scope > .status__secondary')]
-  if (secondary.length < 2) return
-  const row = el('div', { class: 'status__row' })
-  secondary[0].before(row)
-  row.append(...secondary)
-  secondary.forEach((button) => {
-    if (button.dataset.short) button.textContent = button.dataset.short
   })
 }
 
@@ -586,10 +574,6 @@ export const showStatus = (container, order, onClose) => {
         }),
       ].filter(Boolean),
     )
-    pairSecondary(container)
-    // ряд «Поделиться · Пригласить» встаёт на место первой из кнопок — плашку ставим прямо над ним
-    const row = container.querySelector(':scope > .status__row')
-    if (raffle && row) row.before(raffle)
     riseIn(container)
     swapHeading(previousHeading, headingOf(container))
   }
