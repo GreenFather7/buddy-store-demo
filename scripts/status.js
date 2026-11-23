@@ -195,7 +195,7 @@ const pendingView = (order) => {
     return [
       el('div', { class: 'status__spinner' }),
       el('p', { class: 'status__title', text: `Переведите ${trimDecimals(amountTon)} TON` }),
-      el('p', { class: 'status__text', text: 'Комментарий к переводу обязателен — по нему мы найдём платёж.' }),
+      el('p', { class: 'status__text', text: 'Комментарий к переводу обязателен' }),
       payLink('Открыть кошелёк', buildTonLink({ address, amountTon, memo })),
       el('code', { class: 'status__code', text: address }),
       copyButton('Скопировать адрес', address),
@@ -206,7 +206,7 @@ const pendingView = (order) => {
   return [
     el('div', { class: 'status__spinner' }),
     el('p', { class: 'status__title', text: 'Ждём оплату' }),
-    el('p', { class: 'status__text', text: 'Статус обновится здесь сам, страницу можно не закрывать.' }),
+    el('p', { class: 'status__text', text: 'Статус обновится здесь сам' }),
     payLink(order.method === 'usdt' ? 'Оплатить в CryptoBot' : 'Перейти к оплате', order.url),
   ]
 }
@@ -253,13 +253,13 @@ const VIEW = {
     (isVoucherOrder(order) && codeCard(order, [], 'issuing')) || [
     el('div', { class: 'status__spinner' }),
     el('p', { class: 'status__title', text: 'Оплата получена' }),
-    el('p', { class: 'status__text', text: 'Отправляем. Обычно это занимает пару минут.' }),
+    el('p', { class: 'status__text', text: 'Отправляем, обычно пара минут' }),
   ],
   [ORDER_STATE.DELAYED]: (order) =>
     (isVoucherOrder(order) && codeCard(order, [], 'delayed')) || [
     el('div', { class: 'status__spinner' }),
     el('p', { class: 'status__title', text: 'Код задерживается' }),
-    el('p', { class: 'status__text', text: 'Оплата прошла. Код появится здесь, как только поставщик его выдаст.' }),
+    el('p', { class: 'status__text', text: 'Оплата прошла, ждём выдачу' }),
   ],
   [ORDER_STATE.DONE]: (order, result) =>
     ((result.codes ?? []).length > 0 && codeCard(order, result.codes)) || [
@@ -277,12 +277,12 @@ const VIEW = {
       ? [
           failMark(),
           el('p', { class: 'status__title', text: 'Оплата не прошла' }),
-          el('p', { class: 'status__text', text: 'Деньги не списаны. Попробуйте ещё раз или выберите другой способ оплаты.' }),
+          el('p', { class: 'status__text', text: 'Деньги не списаны, попробуйте снова' }),
         ]
       : [
           failMark(),
           el('p', { class: 'status__title', text: 'Заказ не выполнен' }),
-          el('p', { class: 'status__text', text: 'Если деньги списались, напишите в поддержку — вернём или довыдадим.' }),
+          el('p', { class: 'status__text', text: 'Если деньги списались — напишите нам' }),
           el('a', { class: 'btn btn--ghost', href: SUPPORT_URL, target: '_blank', rel: 'noopener', text: 'Поддержка' }),
         ],
 }

@@ -1780,3 +1780,10 @@ p.raffle-sheet__tickets--in {
   width: var(--status-icon);
   height: var(--status-icon);
 }
+
+/* Пояснения на экранах заказа — в одну строку: при смене «Оплата получена» → «Готово»
+   высота текста не меняется, и экран не дёргается */
+.status__text {
+  max-width: none;
+  white-space: nowrap;
+}
