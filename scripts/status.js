@@ -5,6 +5,7 @@ import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textW
 import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js'
 import { PRODUCTS, checkOrder } from './products.js'
 import { createGiftPreview } from './gift-preview.js'
+import { revealCode, startScramble } from './codefx.js'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -66,19 +67,38 @@ const copyButton = (label, value) =>
 
 const COPY_HINT = 'нажмите, чтобы скопировать'
 
-/** Карта гифт-карты с кодом: фирменные цвета сервиса, номинал, регион и сам код. */
-const codeCard = (order, codes) => {
+const WAIT_HINT = {
+  issuing: 'выпускаем код, это пара секунд',
+  delayed: 'код задерживается — он появится здесь сам',
+}
+
+/**
+ * Карта гифт-карты: фирменные цвета сервиса, номинал, регион и код.
+ * Пока код выпускается (codes пустой), его символы перебираются; когда код пришёл —
+ * они по очереди встают на место, и появляется кнопка «Скопировать код».
+ * @param {'issuing'|'delayed'} [waiting] почему кода ещё нет
+ */
+const codeCard = (order, codes, waiting = 'issuing') => {
   const brandId = String(order.summary?.brand ?? '')
-  if (!Object.hasOwn(BRANDS, brandId) || codes.length === 0) return null
+  if (!Object.hasOwn(BRANDS, brandId)) return null
   const brand = BRANDS[brandId]
-  const hint = el('p', { class: 'code-card__hint', text: COPY_HINT })
+  const isReady = codes.length > 0
+  const hint = el('p', { class: 'code-card__hint', text: isReady ? COPY_HINT : WAIT_HINT[waiting] })
   const copy = async (value) => {
     hint.textContent = (await copyText(value)) ? 'скопировано' : 'выделите и скопируйте вручную'
     setTimeout(() => {
       hint.textContent = COPY_HINT
     }, COPIED_FEEDBACK_MS)
   }
-  const card = el('div', { class: 'code-card' }, [
+  const codeNodes = isReady
+    ? codes.map((code) => {
+        const button = el('button', { class: 'code-card__code', type: 'button', onClick: () => copy(code) })
+        revealCode(button, code)
+        return button
+      })
+    : [el('span', { class: 'code-card__code code-card__code--waiting', 'aria-hidden': 'true' })]
+  if (!isReady) startScramble(codeNodes[0])
+  const card = el('div', { class: `code-card${isReady ? ' code-card--ready' : ''}` }, [
     el('div', { class: 'code-card__head' }, [
       el('span', { class: 'code-card__logo' }, [logoIcon(brand.path)]),
       el('span', { class: 'code-card__name', text: brand.label }),
@@ -92,11 +112,10 @@ const codeCard = (order, codes) => {
       ]),
     ]),
     el('p', { class: 'code-card__label', text: 'Код активации' }),
-    ...codes.map((code) =>
-      el('button', { class: 'code-card__code', type: 'button', text: code, onClick: () => copy(code) }),
-    ),
+    ...codeNodes,
     hint,
   ])
+  if (!isReady) return [paintBrand(card, brand)]
   const copyAll = el('button', {
     class: 'btn code-card__copy',
     type: 'button',
@@ -107,6 +126,9 @@ const codeCard = (order, codes) => {
   copyAll.style.setProperty('--brand-to', brand.to)
   return [paintBrand(card, brand), copyAll]
 }
+
+/** Заказ гифт-карты с кодом (не Steam): пока ждём код, показываем карту с перебором. */
+const isVoucherOrder = (order) => order.productId === 'cards' && Object.hasOwn(BRANDS, String(order.summary?.brand ?? ''))
 
 const payLink = (label, url) =>
   isSafeLink(url)
@@ -173,18 +195,20 @@ const failMark = () =>
 
 const VIEW = {
   [ORDER_STATE.PENDING]: pendingView,
-  [ORDER_STATE.PAID]: () => [
+  [ORDER_STATE.PAID]: (order) =>
+    (isVoucherOrder(order) && codeCard(order, [], 'issuing')) || [
     el('div', { class: 'status__spinner' }),
     el('p', { class: 'status__title', text: 'Оплата получена' }),
     el('p', { class: 'status__text', text: 'Отправляем. Обычно это занимает пару минут.' }),
   ],
-  [ORDER_STATE.DELAYED]: () => [
+  [ORDER_STATE.DELAYED]: (order) =>
+    (isVoucherOrder(order) && codeCard(order, [], 'delayed')) || [
     el('div', { class: 'status__spinner' }),
     el('p', { class: 'status__title', text: 'Код задерживается' }),
     el('p', { class: 'status__text', text: 'Оплата прошла. Код появится здесь, как только поставщик его выдаст.' }),
   ],
   [ORDER_STATE.DONE]: (order, result) =>
-    codeCard(order, result.codes ?? []) ?? [
+    ((result.codes ?? []).length > 0 && codeCard(order, result.codes)) || [
       successMark(order),
       el('p', { class: 'status__title', text: PRODUCTS[order.productId].doneText }),
       order.summary?.line && el('p', { class: 'status__text' }, textWithIcons(order.summary.line)),
