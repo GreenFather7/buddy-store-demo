@@ -3,8 +3,8 @@
 // Пока у бэкенда нет метода для сайта, данные розыгрыша есть только в тестовом режиме:
 // приз — мишка из анимаций мини-приложения, билеты копятся за тестовые покупки звёзд.
 
-import { el } from './dom.js?v=1795440520'
-import { playLottie } from './gift-preview.js?v=1795440520'
+import { el } from './dom.js?v=1795440692'
+import { playLottie } from './gift-preview.js?v=1795440692'
 
 const RAFFLE_HOUR = 20
 const STARS_PER_TICKET = 50
@@ -36,15 +36,21 @@ export const rafflePrizeLink = () => DEMO_PRIZE.link
 /** Картинка разыгрываемого подарка — для строки розыгрыша после покупки. */
 export const rafflePrizeImage = () => DEMO_PRIZE.image
 
-/** До какого момента идёт текущий розыгрыш (ближайшие 20:00). */
+/** Розыгрыш в боте — в 20:00 по Москве (UTC+3, без перехода на летнее время). */
+const MOSCOW_UTC_OFFSET_HOURS = 3
+
+/** До какого момента идёт текущий розыгрыш: ближайшие 20:00 по Москве, где бы ни был покупатель. */
 const nextDraw = (now = new Date()) => {
   const draw = new Date(now)
-  draw.setHours(RAFFLE_HOUR, 0, 0, 0)
-  if (now >= draw) draw.setDate(draw.getDate() + 1)
+  draw.setUTCHours(RAFFLE_HOUR - MOSCOW_UTC_OFFSET_HOURS, 0, 0, 0)
+  if (now >= draw) draw.setUTCDate(draw.getUTCDate() + 1)
   return draw
 }
 
 const pad = (value) => String(value).padStart(2, '0')
+
+/** Сколько осталось до розыгрыша: «05:12:33». */
+export const raffleCountdown = () => countdown()
 
 const countdown = () => {
   const totalSeconds = Math.max(0, Math.floor((nextDraw() - Date.now()) / MS_PER_SECOND))

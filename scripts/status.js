@@ -1,15 +1,15 @@
-import { ApiError, request } from './api.js?v=1795440520'
-import { CONFIG } from './config.js?v=1795440520'
-import { BRANDS } from './brands.js?v=1795440520'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795440520'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795440520'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795440520'
-import { createGiftPreview } from './gift-preview.js?v=1795440520'
-import { revealCode, startScramble } from './codefx.js?v=1795440520'
-import { RAFFLE_MIN_TICKETS, rafflePrizeImage, rafflePrizeLink, ticketsFor, ticketsWord } from './raffle.js?v=1795440520'
-import { mixHex } from './hero-math.js?v=1795440520'
-import { giftLink, validGift } from './gift-link.js?v=1795440520'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795440520'
+import { ApiError, request } from './api.js?v=1795440692'
+import { CONFIG } from './config.js?v=1795440692'
+import { BRANDS } from './brands.js?v=1795440692'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795440692'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795440692'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795440692'
+import { createGiftPreview } from './gift-preview.js?v=1795440692'
+import { revealCode, startScramble } from './codefx.js?v=1795440692'
+import { RAFFLE_MIN_TICKETS, raffleCountdown, rafflePrizeImage, rafflePrizeLink, ticketsFor } from './raffle.js?v=1795440692'
+import { mixHex } from './hero-math.js?v=1795440692'
+import { giftLink, validGift } from './gift-link.js?v=1795440692'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795440692'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -351,23 +351,33 @@ const failMark = () =>
 // ── Розыгрыш NFT после покупки ───────────────────────────────────────
 // Как в боте звёзд: каждый день в 20:00 (МСК) разыгрывается NFT-подарок, билеты — только за звёзды
 // (1 за 50). Покупателю на сайте без Telegram бэкенд билеты не начисляет — ему не обещаем.
-const RAFFLE_TIME = '20:00'
-
-/** Текст плашки: билеты за эту покупку или чем их получить. */
 /**
- * Вторая строка розыгрыша — участвует ли человек. Как в боте: 1 билет за 50 звёзд,
- * в розыгрыше — от 3 билетов за день. Число билетов выделено золотом.
+ * Розыгрыш — минимум слов: заголовок говорит, участвует ли человек, строка под ним —
+ * сколько у него билетов и сколько осталось до розыгрыша. Как в боте: 1 билет за 50 звёзд,
+ * участвуют от 3 билетов за день, розыгрыш в 20:00 по Москве.
  */
-const raffleStatus = (order) => {
-  if (order.productId !== 'stars') return ['Билеты — за звёзды']
-  if (!isInTelegram()) return ['Участие — в Telegram']
+const raffleState = (order) => {
+  if (order.productId !== 'stars') return { title: 'Розыгрыш NFT', tickets: 'за звёзды' }
+  if (!isInTelegram()) return { title: 'Розыгрыш NFT', tickets: 'в Telegram' }
   const tickets = ticketsFor(order.summary?.amount)
-  if (tickets === 0) return ['Билет — от 50 звёзд']
-  const missing = RAFFLE_MIN_TICKETS - tickets
-  if (missing > 0) return ['Ещё ', strong(`${missing} ${ticketsWord(missing)}`), ' до участия']
-  return ['Вы участвуете · ', strong(`${tickets} ${ticketsWord(tickets)}`)]
+  if (tickets === 0) return { title: 'Розыгрыш NFT', tickets: 'от 50 звёзд' }
+  if (tickets < RAFFLE_MIN_TICKETS) return { title: 'Почти в розыгрыше', tickets: `${tickets} из ${RAFFLE_MIN_TICKETS}`, isCount: true }
+  return { title: 'Вы в розыгрыше NFT', tickets: String(tickets), isCount: true }
 }
-const strong = (text) => el('strong', { text })
+
+/** Таймер до розыгрыша: тикает раз в секунду, пока строка на экране. */
+const COUNTDOWN_TICK_MS = 1000
+const countdownNode = () => {
+  const node = el('strong', { class: 'raffle-row__timer', text: raffleCountdown() })
+  const timer = setInterval(() => {
+    if (!node.isConnected) {
+      clearInterval(timer)
+      return
+    }
+    node.textContent = raffleCountdown()
+  }, COUNTDOWN_TICK_MS)
+  return node
+}
 
 /**
  * Показывает разыгрываемый NFT в стандартном окне подарка Telegram (ссылка t.me/nft/…):
@@ -386,18 +396,23 @@ const openRafflePrize = () => {
  */
 const raffleRow = (order) => {
   const invite = inviteButton()
-  const title = `Розыгрыш NFT · в ${RAFFLE_TIME}`
+  const state = raffleState(order)
   return el('div', { class: 'raffle-row' }, [
     el('button', {
       class: 'raffle-row__main',
       type: 'button',
-      'aria-label': `${title}. Посмотреть подарок`,
+      'aria-label': `${state.title}. Билеты: ${state.tickets}. До розыгрыша ${raffleCountdown()}. Посмотреть подарок`,
       onClick: openRafflePrize,
     }, [
       el('img', { class: 'raffle-row__image', src: rafflePrizeImage(), alt: '', width: '40', height: '40' }),
       el('span', { class: 'raffle-row__text' }, [
-        el('span', { class: 'raffle-row__title', text: title }),
-        el('span', { class: 'raffle-row__status' }, raffleStatus(order)),
+        el('span', { class: 'raffle-row__title', text: state.title }),
+        el('span', { class: 'raffle-row__status' }, [
+          '🎟 ',
+          state.isCount ? el('strong', { text: state.tickets }) : state.tickets,
+          ' · ⏱ ',
+          countdownNode(),
+        ]),
       ]),
       !invite && el('span', { class: 'raffle-row__chevron', 'aria-hidden': 'true', text: '›' }),
     ]),

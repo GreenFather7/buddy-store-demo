@@ -2155,3 +2155,9 @@ p.raffle-sheet__tickets--in {
     font-size: 0.75rem;
   }
 }
+
+/* таймер до розыгрыша — цифры не прыгают при каждом тике */
+.raffle-row__status .raffle-row__timer {
+  color: var(--color-text-soft);
+  font-variant-numeric: tabular-nums;
+}
