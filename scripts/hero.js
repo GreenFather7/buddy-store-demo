@@ -4,9 +4,12 @@
 // Для гифт-карт и разделов без своей анимации в то же движение подставляется другой значок.
 // В круге — аватар получателя из Telegram, пока его нет — картинка Buddy.
 
-import { loopFrame, mixHex, valueAt } from './hero-math.js?v=1795434806'
+import { loopFrame, mixHex, valueAt } from './hero-math.js?v=1795435138'
 
 const ANIMATION_URL = (name) => `assets/hero/${name}.json`
+/** Сколько раз и через сколько повторить загрузку анимации, если она не пришла. */
+const HERO_RETRIES = 3
+const HERO_RETRY_MS = 2000
 const GLYPH_GRID = 24
 const MAX_DEVICE_PIXEL_RATIO = 2
 const PERCENT = 100
@@ -130,6 +133,11 @@ const loadAnimation = (name) => {
         // у верхних слоёв меньший номер, а рисовать надо снизу вверх
         layers: [...data.layers].reverse(),
       }))
+      .catch((error) => {
+        // неудачную загрузку не запоминаем — следующий показ попробует снова
+        animationCache.delete(name)
+        throw error
+      })
     animationCache.set(name, request)
   }
   return animationCache.get(name)
@@ -263,21 +271,28 @@ export const createHero = (root) => {
     probe.src = url
   }
 
-  return {
-    async show(view) {
-      if (wantedKey === view.key) return
-      wantedKey = view.key
-      root.style.setProperty('--hero-color', view.color)
-      try {
-        const animation = await loadAnimation(view.animation)
-        if (wantedKey !== view.key) return // пока грузилось, покупатель выбрал другое
-        scene = { view, animation, colors: shapeColors(animation, view) }
-        if (isReducedMotion) draw(0)
-        else start()
-      } catch (error) {
-        console.error(error) // шапка — украшение: без анимации магазин работает как обычно
+  const show = async (view, attempt = 0) => {
+    if (wantedKey === view.key && attempt === 0) return
+    wantedKey = view.key
+    root.style.setProperty('--hero-color', view.color)
+    try {
+      const animation = await loadAnimation(view.animation)
+      if (wantedKey !== view.key) return // пока грузилось, покупатель выбрал другое
+      scene = { view, animation, colors: shapeColors(animation, view) }
+      if (isReducedMotion) draw(0)
+      else start()
+    } catch (error) {
+      // шапка — украшение: без анимации магазин работает как обычно; но сбой сети (например,
+      // во время выкладки сайта) не должен оставить шапку пустой — пробуем ещё пару раз
+      console.error(error)
+      if (attempt < HERO_RETRIES && wantedKey === view.key) {
+        setTimeout(() => wantedKey === view.key && show(view, attempt + 1), HERO_RETRY_MS)
       }
-    },
+    }
+  }
+
+  return {
+    show: (view) => show(view),
     setAvatar,
   }
 }

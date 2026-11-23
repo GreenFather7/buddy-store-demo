@@ -3,8 +3,8 @@
 // Пока у бэкенда нет метода для сайта, данные розыгрыша есть только в тестовом режиме:
 // приз — мишка из анимаций мини-приложения, билеты копятся за тестовые покупки звёзд.
 
-import { el } from './dom.js?v=1795434806'
-import { playLottie } from './gift-preview.js?v=1795434806'
+import { el } from './dom.js?v=1795435138'
+import { playLottie } from './gift-preview.js?v=1795435138'
 
 const RAFFLE_HOUR = 20
 const STARS_PER_TICKET = 50
