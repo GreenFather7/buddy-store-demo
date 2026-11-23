@@ -2,7 +2,7 @@
 // Исход заказа выбирают в окне тестовой оплаты (settleDemoOrder): успех, отказ платежа,
 // ошибка выдачи или задержка. В боевом режиме не используется.
 
-import { ApiError } from './api.js?v=1795418361'
+import { ApiError } from './api.js?v=1795418599'
 
 /** Сколько заказ «отправляется» после оплаты, прежде чем показать итог. */
 const DELIVERY_MS = 1800
@@ -217,16 +217,16 @@ function cardsOrder(hasCode) {
 const VOUCHER_MARKUP = 1.08
 const spaced = (value) => String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
 const REGION_NOMINALS = {
-  tr: { values: [250, 500, 1000, 1500], rub: 2.8, format: (v) => `${spaced(v)} TL` },
-  us: { values: [10, 25, 50, 100], rub: 95, format: (v) => `$${v}` },
-  in: { values: [500, 1000, 2000, 5000], rub: 1.15, format: (v) => `₹${spaced(v)}` },
-  ae: { values: [50, 100, 200, 500], rub: 26, format: (v) => `${v} AED` },
-  kz: { values: [2000, 5000, 10000, 20000], rub: 0.19, format: (v) => `${spaced(v)} ₸` },
-  de: { values: [15, 25, 50, 100], rub: 102, format: (v) => `${v} €` },
-  br: { values: [50, 100, 200, 300], rub: 17, format: (v) => `R$ ${v}` },
-  pl: { values: [50, 100, 200, 300], rub: 24, format: (v) => `${v} zł` },
-  gb: { values: [10, 25, 50, 100], rub: 120, format: (v) => `£${v}` },
-  jp: { values: [1500, 3000, 5000, 10000], rub: 0.62, format: (v) => `¥${spaced(v)}` },
+  tr: { values: [25, 50, 100, 150, 250, 300, 400, 500, 750, 1000, 1500, 2000, 2500], rub: 2.8, format: (v) => `${spaced(v)} TL` },
+  us: { values: [10, 15, 20, 25, 30, 40, 50, 60, 75, 100, 150, 200, 250, 300, 500], rub: 95, format: (v) => `$${v}` },
+  in: { values: [100, 200, 300, 500, 1000, 1500, 2000, 3000, 4000, 5000], rub: 1.15, format: (v) => `₹${spaced(v)}` },
+  ae: { values: [20, 50, 100, 150, 200, 250, 300, 500], rub: 26, format: (v) => `${v} AED` },
+  kz: { values: [1000, 2000, 3000, 5000, 7000, 10000, 15000, 20000, 30000], rub: 0.19, format: (v) => `${spaced(v)} ₸` },
+  de: { values: [5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 100, 150, 200], rub: 102, format: (v) => `${v} €` },
+  br: { values: [20, 30, 40, 50, 60, 100, 150, 200, 250, 300], rub: 17, format: (v) => `R$ ${v}` },
+  pl: { values: [20, 30, 50, 70, 100, 150, 200, 250, 300, 500], rub: 24, format: (v) => `${v} zł` },
+  gb: { values: [5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 100, 150], rub: 120, format: (v) => `£${v}` },
+  jp: { values: [1000, 1500, 3000, 5000, 10000, 15000, 20000], rub: 0.62, format: (v) => `¥${spaced(v)}` },
 }
 
 export const mockRequest = async (shop, path, { method, query = {}, body = {} }) => {

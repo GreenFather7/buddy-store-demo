@@ -519,7 +519,8 @@ select.field__input {
 
 /* Подарки и регионы: один ряд, листается влево-вправо, как строка разделов. */
 .choices--media,
-.choices--region {
+.choices--region,
+.choices--nominal {
   flex-wrap: nowrap;
   margin-inline: calc(var(--space-gutter) * -1);
   /* обводка выбранного — внутренняя тень, запас по вертикали не нужен */
@@ -539,13 +540,16 @@ select.field__input {
 }
 
 .choices--media::-webkit-scrollbar,
-.choices--region::-webkit-scrollbar {
+.choices--region::-webkit-scrollbar,
+.choices--nominal::-webkit-scrollbar {
   display: none;
 }
 
-/* Номиналы — как шаблоны количества у звёзд: равные капсулы в один ряд, только номинал */
+/* Номиналы — как шаблоны количества у звёзд: равные капсулы, только номинал.
+   На экране ровно четыре, остальные листаются вбок; длинный номинал растягивает свою капсулу. */
 .choice--nominal {
-  flex: 1 1 0;
+  flex: none;
+  min-width: calc((100% - 3 * 0.5rem) / 4);
   padding-inline: 0.25rem;
   font-size: 1rem;
   white-space: nowrap;

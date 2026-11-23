@@ -1,5 +1,5 @@
-import { ApiError, request } from './api.js?v=1795418361'
-import { BRANDS } from './brands.js?v=1795418361'
+import { ApiError, request } from './api.js?v=1795418599'
+import { BRANDS } from './brands.js?v=1795418599'
 import {
   ORDER_STATE,
   flagUrl,
@@ -13,7 +13,7 @@ import {
   normalizeUsername,
   parseIntInRange,
   trimDecimals,
-} from './lib.js?v=1795418361'
+} from './lib.js?v=1795418599'
 
 const STARS_MIN = 50
 const STARS_MAX = 5000
@@ -299,6 +299,8 @@ export const loadCardServices = async () => {
 const cards = {
   id: 'cards',
   doneText: 'Ваш код',
+  // нигде больше не сказано, что покупается именно гифт-карта (код), — говорим на кнопке
+  payWord: 'Купить гифт-карту',
   methods: ['sbp', 'usdt'],
   fields: [
     // Сервис выбирается капсулой в строке разделов, поэтому в форме его нет.

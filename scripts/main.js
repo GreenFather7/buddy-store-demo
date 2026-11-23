@@ -1,19 +1,19 @@
-import { ApiError } from './api.js?v=1795418361'
-import { BRANDS } from './brands.js?v=1795418361'
-import { CONFIG } from './config.js?v=1795418361'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795418361'
-import { ensureFreshBuild } from './fresh.js?v=1795418361'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795418361'
-import { createHero, heroGlyph } from './hero.js?v=1795418361'
-import { mixHex } from './hero-math.js?v=1795418361'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795418361'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795418361'
-import { loadOrder, saveOrder, showStatus } from './status.js?v=1795418361'
-import { hapticError, initTelegram } from './telegram.js?v=1795418361'
-import { setAmount } from './odometer.js?v=1795418361'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795418361'
-import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795418361'
-import { settleDemoOrder } from './mock.js?v=1795418361'
+import { ApiError } from './api.js?v=1795418599'
+import { BRANDS } from './brands.js?v=1795418599'
+import { CONFIG } from './config.js?v=1795418599'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795418599'
+import { ensureFreshBuild } from './fresh.js?v=1795418599'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795418599'
+import { createHero, heroGlyph } from './hero.js?v=1795418599'
+import { mixHex } from './hero-math.js?v=1795418599'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795418599'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795418599'
+import { loadOrder, saveOrder, showStatus } from './status.js?v=1795418599'
+import { hapticError, initTelegram } from './telegram.js?v=1795418599'
+import { setAmount } from './odometer.js?v=1795418599'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795418599'
+import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795418599'
+import { settleDemoOrder } from './mock.js?v=1795418599'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -88,11 +88,14 @@ const updateSubmit = () => {
   if (!amountEl) {
     delete submitLabelEl.dataset.error
     amountEl = el('span', { class: 'pay-amount' })
-    submitLabelEl.replaceChildren(el('span', { class: 'pay-word', text: PAY_WORD }), amountEl)
+    submitLabelEl.replaceChildren(el('span', { class: 'pay-word' }), amountEl)
     if (wasError && isAnimated) {
       submitLabelEl.animate(LABEL_IN, { duration: LABEL_IN_MS, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' })
     }
   }
+  const wordEl = submitLabelEl.querySelector('.pay-word')
+  const word = state?.product.payWord ?? PAY_WORD
+  if (wordEl.textContent !== word) wordEl.textContent = word
   const price = state?.quote?.[state.method]
   const amount = price && /\d/.test(price) ? price : ''
   const hadAmount = Boolean(amountEl.dataset.value)
