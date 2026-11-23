@@ -1748,3 +1748,14 @@ p.raffle-sheet__tickets--in {
     animation: none;
   }
 }
+
+/* заголовок и пояснение над картой гифт-карты — по центру, как на остальных экранах заказа */
+.status:has(.code-card) > .status__title,
+.status:has(.code-card) > .status__text {
+  justify-self: center;
+}
+
+.status:has(.code-card) > .status__text {
+  max-width: none;
+  white-space: nowrap;
+}

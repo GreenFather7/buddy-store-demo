@@ -67,9 +67,18 @@ const copyButton = (label, value) =>
 
 const COPY_HINT = 'нажмите, чтобы скопировать'
 
-const WAIT_HINT = {
-  issuing: 'выпускаем код, это пара секунд',
-  delayed: 'код задерживается — он появится здесь сам',
+/** Заголовок над картой гифт-карты: что сейчас с заказом. Подсказка на самой карте — только «нажмите, чтобы скопировать». */
+// У каждого этапа заголовок и одна строка пояснения — так карта под ними не прыгает,
+// когда «Оплата получена» сменяется на «Код готов».
+const CARD_HEADING = {
+  issuing: ['Оплата получена', () => 'Выпускаем код, это пара секунд'],
+  delayed: ['Код задерживается', () => 'Оплата прошла, код появится здесь сам'],
+  ready: ['Код готов', (brand) => `Скопируйте и активируйте в ${brand.label}`],
+}
+
+const cardHeading = (stage, brand) => {
+  const [title, text] = CARD_HEADING[stage]
+  return [el('p', { class: 'status__title', text: title }), el('p', { class: 'status__text', text: text(brand) })]
 }
 
 /**
@@ -83,7 +92,8 @@ const codeCard = (order, codes, waiting = 'issuing') => {
   if (!Object.hasOwn(BRANDS, brandId)) return null
   const brand = BRANDS[brandId]
   const isReady = codes.length > 0
-  const hint = el('p', { class: 'code-card__hint', text: isReady ? COPY_HINT : WAIT_HINT[waiting] })
+  // пока кода нет, место подсказки пустое — карта не меняет высоту, когда код появится
+  const hint = el('p', { class: 'code-card__hint', text: isReady ? COPY_HINT : '\u00a0' })
   const copy = async (value) => {
     hint.textContent = (await copyText(value)) ? 'скопировано' : 'выделите и скопируйте вручную'
     setTimeout(() => {
@@ -115,7 +125,7 @@ const codeCard = (order, codes, waiting = 'issuing') => {
     ...codeNodes,
     hint,
   ])
-  if (!isReady) return [paintBrand(card, brand)]
+  if (!isReady) return [...cardHeading(waiting, brand), paintBrand(card, brand)]
   const copyAll = el('button', {
     class: 'btn code-card__copy',
     type: 'button',
@@ -124,7 +134,7 @@ const codeCard = (order, codes, waiting = 'issuing') => {
   })
   copyAll.style.setProperty('--brand-from', brand.from)
   copyAll.style.setProperty('--brand-to', brand.to)
-  return [paintBrand(card, brand), copyAll]
+  return [...cardHeading('ready', brand), paintBrand(card, brand), copyAll]
 }
 
 /** Заказ гифт-карты с кодом (не Steam): пока ждём код, показываем карту с перебором. */
