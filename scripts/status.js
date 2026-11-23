@@ -73,9 +73,12 @@ const COPY_HINT = 'нажмите, чтобы скопировать'
 // когда «Оплата получена» сменяется на «Код готов».
 const CARD_HEADING = {
   issuing: ['Оплата получена', () => 'Выпускаем код, это пара секунд'],
-  delayed: ['Код задерживается', () => 'Оплата прошла, код появится здесь сам'],
+  // в Telegram бот пришлёт код в чат; в обычном браузере код появится на этой странице
+  delayed: ['Код задерживается', () => (isInTelegram() ? 'Пришлём код в чат, как появится' : 'Код появится здесь сам')],
   ready: ['Код готов', (brand) => `Скопируйте и активируйте в ${brand.label}`],
 }
+
+const isInTelegram = () => document.documentElement.classList.contains('is-telegram')
 
 const cardHeading = (stage, brand) => {
   const [title, text] = CARD_HEADING[stage]
@@ -259,7 +262,7 @@ const VIEW = {
     (isVoucherOrder(order) && codeCard(order, [], 'delayed')) || [
     el('div', { class: 'status__spinner' }),
     el('p', { class: 'status__title', text: 'Код задерживается' }),
-    el('p', { class: 'status__text', text: 'Оплата прошла, ждём выдачу' }),
+    el('p', { class: 'status__text', text: isInTelegram() ? 'Пришлём в чат, как будет готово' : 'Оплата прошла, ждём выдачу' }),
   ],
   [ORDER_STATE.DONE]: (order, result) =>
     ((result.codes ?? []).length > 0 && codeCard(order, result.codes)) || [
