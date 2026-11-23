@@ -163,11 +163,6 @@
   --product-color: #4fb8e0;
 }
 
-/* плитка уже цветная — без цветной тени, только мягкая */
-.product__icon--tile {
-  filter: drop-shadow(0 2px 5px rgb(79 156 249 / 0.35));
-}
-
 .product--steam {
   --product-color: #dfe6ee;
 }

@@ -1,20 +1,20 @@
-import { ApiError } from './api.js?v=1795433951'
-import { BRANDS } from './brands.js?v=1795433951'
-import { CONFIG } from './config.js?v=1795433951'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795433951'
-import { ensureFreshBuild } from './fresh.js?v=1795433951'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795433951'
-import { createHero, heroGlyph } from './hero.js?v=1795433951'
-import { mixHex } from './hero-math.js?v=1795433951'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795433951'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795433951'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795433951'
-import { readGiftLink } from './gift-link.js?v=1795433951'
-import { hapticError, initTelegram } from './telegram.js?v=1795433951'
-import { setAmount } from './odometer.js?v=1795433951'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795433951'
-import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795433951'
-import { settleDemoOrder } from './mock.js?v=1795433951'
+import { ApiError } from './api.js?v=1795434061'
+import { BRANDS } from './brands.js?v=1795434061'
+import { CONFIG } from './config.js?v=1795434061'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795434061'
+import { ensureFreshBuild } from './fresh.js?v=1795434061'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795434061'
+import { createHero, heroGlyph } from './hero.js?v=1795434061'
+import { mixHex } from './hero-math.js?v=1795434061'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795434061'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795434061'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795434061'
+import { readGiftLink } from './gift-link.js?v=1795434061'
+import { hapticError, initTelegram } from './telegram.js?v=1795434061'
+import { setAmount } from './odometer.js?v=1795434061'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795434061'
+import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795434061'
+import { settleDemoOrder } from './mock.js?v=1795434061'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -698,7 +698,10 @@ const brandCapsule = (service) => {
     },
     [service.brand && logoIcon(service.brand.path, 'product__icon'), el('span', { text: service.label })],
   )
-  if (service.brand) button.style.setProperty('--product-color', mixHex(service.brand.to, '#ffffff', BRAND_ICON_LIFT))
+  // свой цвет значка у бренда (PlayStation, App Store) — без высветления, иначе синий выходит блёклым
+  if (service.brand) {
+    button.style.setProperty('--product-color', service.brand.icon ?? mixHex(service.brand.to, '#ffffff', BRAND_ICON_LIFT))
+  }
   return button
 }
 
