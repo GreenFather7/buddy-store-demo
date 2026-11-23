@@ -4,7 +4,7 @@
 // Для гифт-карт и разделов без своей анимации в то же движение подставляется другой значок.
 // В круге — аватар получателя из Telegram, пока его нет — картинка Buddy.
 
-import { loopFrame, mixHex, valueAt } from './hero-math.js?v=1795433729'
+import { loopFrame, mixHex, valueAt } from './hero-math.js?v=1795433951'
 
 const ANIMATION_URL = (name) => `assets/hero/${name}.json`
 const GLYPH_GRID = 24
@@ -19,16 +19,66 @@ const FIRST_TONE_MIX = 0.18
 const SECOND_TONE_MIX = 0.42
 const SPARK_MIX = 0.6
 
+/**
+ * Все значки летают одного размера — как звёзды в первом разделе. Это обычный (медианный) размер
+ * звезды в её анимации, доля ширины шапки; Gram и USDT в своих анимациях крупнее и подгоняются под неё.
+ * По медиане, а не по максимуму: у Gram кристалл на миг сильно увеличивается, и по нему всё стало бы мелким.
+ */
+const STAR_GLYPH_SHARE = 0.0228
+/** Значок считается видимым, когда он непрозрачен больше чем наполовину (проценты). */
+const VISIBLE_OPACITY = 50
+/** Подставной значок рисуется крупно на скрытом холсте, чтобы найти, где сам рисунок (без полей). */
+const BOUNDS_SCALE = 4
+
 /** @typedef {{ path: Path2D, stroke?: number, fill?: boolean }} GlyphPart */
-/** @typedef {{ key: string, animation: 'stars'|'gram'|'tether', color: string, glyph?: GlyphPart[] }} HeroView */
+/** @typedef {{ parts: GlyphPart[], bounds: [number, number, number, number] }} Glyph */
+/** @typedef {{ key: string, animation: 'stars'|'gram'|'tether', color: string, glyph?: Glyph }} HeroView */
+
+const fillParts = (context, parts) =>
+  parts.forEach((part) => {
+    if (part.fill) context.fill(part.path, 'evenodd')
+    if (part.stroke) {
+      context.lineWidth = part.stroke
+      context.lineJoin = 'round'
+      context.stroke(part.path)
+    }
+  })
+
+/** Где в сетке 24×24 сам рисунок: у логотипов и иконок вокруг него разные поля. */
+const glyphBounds = (parts) => {
+  const side = GLYPH_GRID * BOUNDS_SCALE
+  const canvas = document.createElement('canvas')
+  canvas.width = side
+  canvas.height = side
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  if (!context) return [0, 0, GLYPH_GRID, GLYPH_GRID]
+  context.scale(BOUNDS_SCALE, BOUNDS_SCALE)
+  fillParts(context, parts)
+  const { data } = context.getImageData(0, 0, side, side)
+  let [left, top, right, bottom] = [side, side, -1, -1]
+  for (let y = 0; y < side; y += 1) {
+    for (let x = 0; x < side; x += 1) {
+      if (data[(y * side + x) * 4 + 3] === 0) continue
+      left = Math.min(left, x)
+      right = Math.max(right, x)
+      top = Math.min(top, y)
+      bottom = Math.max(bottom, y)
+    }
+  }
+  if (right < 0) return [0, 0, GLYPH_GRID, GLYPH_GRID]
+  return [left / BOUNDS_SCALE, top / BOUNDS_SCALE, (right + 1) / BOUNDS_SCALE, (bottom + 1) / BOUNDS_SCALE]
+}
+
+/** @param {GlyphPart[]} parts @returns {Glyph} */
+const makeGlyph = (parts) => ({ parts, bounds: glyphBounds(parts) })
 
 /**
  * Собирает значок из иконки раздела на странице: те же контуры, что видит покупатель.
  * @param {SVGElement} svg
- * @returns {GlyphPart[]}
+ * @returns {Glyph}
  */
 const glyphFromIcon = (svg) =>
-  [...svg.querySelectorAll('path')]
+  makeGlyph([...svg.querySelectorAll('path')]
     .filter((node) => !node.closest('defs'))
     .map((node) => {
       const source = new Path2D(node.getAttribute('d') ?? '')
@@ -41,7 +91,26 @@ const glyphFromIcon = (svg) =>
         fill: node.getAttribute('fill') !== 'none',
         stroke: node.hasAttribute('stroke') ? strokeWidth * (matrix?.a ?? 1) : undefined,
       }
-    })
+    }))
+
+/** Обычный (медианный) размер значка анимации — доля её ширины, по всем кадрам, где значок виден. */
+const typicalGlyphShare = (data) => {
+  const sizes = []
+  data.layers.forEach((layer) => {
+    const shape = data.shapes[layer.sh]
+    if (!shape.glyph) return
+    for (let frame = layer.ip; frame < layer.op; frame += 2) {
+      if (valueAt(layer.o, frame)[0] <= VISIBLE_OPACITY) continue
+      const [scaleX, scaleY] = valueAt(layer.s, frame)
+      const width = (shape.box[2] - shape.box[0]) * (scaleX / PERCENT)
+      const height = (shape.box[3] - shape.box[1]) * (scaleY / PERCENT)
+      sizes.push(Math.max(width, height))
+    }
+  })
+  if (sizes.length === 0) return 0
+  const sorted = [...sizes].sort((first, second) => first - second)
+  return sorted[Math.floor(sorted.length / 2)] / data.w
+}
 
 const animationCache = new Map()
 
@@ -55,6 +124,8 @@ const loadAnimation = (name) => {
       })
       .then((data) => ({
         ...data,
+        // во сколько раз уменьшить значки этой анимации, чтобы они были как звёзды
+        glyphScale: Math.min(1, STAR_GLYPH_SHARE / (typicalGlyphShare(data) || STAR_GLYPH_SHARE)),
         shapes: data.shapes.map((shape) => ({ ...shape, path: new Path2D(shape.d) })),
         // у верхних слоёв меньший номер, а рисовать надо снизу вверх
         layers: [...data.layers].reverse(),
@@ -64,20 +135,17 @@ const loadAnimation = (name) => {
   return animationCache.get(name)
 }
 
-/** Рисует подставной значок на месте исходной фигуры — по центру её рамки и в её высоту. */
+/**
+ * Рисует подставной значок на месте исходной фигуры: по центру её рамки, и сам рисунок
+ * (без полей вокруг него в сетке 24×24) занимает рамку так же, как исходная звезда.
+ */
 const drawGlyph = (context, glyph, [left, top, right, bottom]) => {
-  const scale = (bottom - top) / GLYPH_GRID
+  const [glyphLeft, glyphTop, glyphRight, glyphBottom] = glyph.bounds
+  const scale = Math.max(right - left, bottom - top) / Math.max(glyphRight - glyphLeft, glyphBottom - glyphTop)
   context.translate((left + right) / 2, (top + bottom) / 2)
   context.scale(scale, scale)
-  context.translate(-GLYPH_GRID / 2, -GLYPH_GRID / 2)
-  glyph.forEach((part) => {
-    if (part.fill) context.fill(part.path, 'evenodd')
-    if (part.stroke) {
-      context.lineWidth = part.stroke
-      context.lineJoin = 'round'
-      context.stroke(part.path)
-    }
-  })
+  context.translate(-(glyphLeft + glyphRight) / 2, -(glyphTop + glyphBottom) / 2)
+  fillParts(context, glyph.parts)
 }
 
 /** Цвета фигур: исходные, если значок свой, иначе оттенки цвета выбранного раздела или сервиса. */
@@ -132,6 +200,14 @@ export const createHero = (root) => {
       context.translate(-layer.a[0], -layer.a[1])
       context.fillStyle = colors[layer.sh]
       context.strokeStyle = colors[layer.sh]
+      // значки уменьшаются вокруг своего центра — до размера звёзд; искры не трогаем
+      if (shape.glyph && animation.glyphScale !== 1) {
+        const centerX = (shape.box[0] + shape.box[2]) / 2
+        const centerY = (shape.box[1] + shape.box[3]) / 2
+        context.translate(centerX, centerY)
+        context.scale(animation.glyphScale, animation.glyphScale)
+        context.translate(-centerX, -centerY)
+      }
       if (view.glyph && shape.glyph) drawGlyph(context, view.glyph, shape.box)
       else context.fill(shape.path)
       context.restore()
@@ -209,5 +285,5 @@ export const createHero = (root) => {
 export const heroGlyph = {
   fromIcon: glyphFromIcon,
   /** @param {string} pathData логотип сервиса в сетке 24×24 */
-  fromPath: (pathData) => [{ path: new Path2D(pathData), fill: true }],
+  fromPath: (pathData) => makeGlyph([{ path: new Path2D(pathData), fill: true }]),
 }

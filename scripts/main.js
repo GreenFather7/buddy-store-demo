@@ -1,20 +1,20 @@
-import { ApiError } from './api.js?v=1795433729'
-import { BRANDS } from './brands.js?v=1795433729'
-import { CONFIG } from './config.js?v=1795433729'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795433729'
-import { ensureFreshBuild } from './fresh.js?v=1795433729'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795433729'
-import { createHero, heroGlyph } from './hero.js?v=1795433729'
-import { mixHex } from './hero-math.js?v=1795433729'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795433729'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795433729'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795433729'
-import { readGiftLink } from './gift-link.js?v=1795433729'
-import { hapticError, initTelegram } from './telegram.js?v=1795433729'
-import { setAmount } from './odometer.js?v=1795433729'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795433729'
-import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795433729'
-import { settleDemoOrder } from './mock.js?v=1795433729'
+import { ApiError } from './api.js?v=1795433951'
+import { BRANDS } from './brands.js?v=1795433951'
+import { CONFIG } from './config.js?v=1795433951'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795433951'
+import { ensureFreshBuild } from './fresh.js?v=1795433951'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795433951'
+import { createHero, heroGlyph } from './hero.js?v=1795433951'
+import { mixHex } from './hero-math.js?v=1795433951'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795433951'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795433951'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795433951'
+import { readGiftLink } from './gift-link.js?v=1795433951'
+import { hapticError, initTelegram } from './telegram.js?v=1795433951'
+import { setAmount } from './odometer.js?v=1795433951'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795433951'
+import { addTicketsForStars, mountRaffle, ticketsWord } from './raffle.js?v=1795433951'
+import { settleDemoOrder } from './mock.js?v=1795433951'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -222,12 +222,15 @@ const capsule = (productId, service) =>
 
 const productButton = (productId) => capsule(productId)
 
+/** Контур для частиц: отдельный скрытый (у Premium и «Подарков» иконка — картинка или плитка), иначе сама иконка. */
+const glyphSource = (button) => button.querySelector('.product__glyph') ?? button.querySelector('svg')
+
 const productLook = (productId) => {
   const button = productButton(productId)
   return {
     color: getComputedStyle(button).getPropertyValue('--product-color').trim(),
     // у «Звёзд» иконка — картинка, а не контур; их частицы — собственная анимация, контур не нужен
-    glyph: button.querySelector('svg') ? heroGlyph.fromIcon(button.querySelector('svg')) : undefined,
+    glyph: glyphSource(button) ? heroGlyph.fromIcon(glyphSource(button)) : undefined,
   }
 }
 
