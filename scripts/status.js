@@ -1,16 +1,16 @@
-import { ApiError, request } from './api.js?v=1795505288'
-import { CONFIG } from './config.js?v=1795505288'
-import { BRANDS } from './brands.js?v=1795505288'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795505288'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795505288'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795505288'
-import { createGiftPreview } from './gift-preview.js?v=1795505288'
-import { revealCode, startScramble } from './codefx.js?v=1795505288'
-import { RAFFLE_MIN_TICKETS, raffleCountdown, rafflePrizeImage, rafflePrizeName, ticketsFor, ticketsWord } from './raffle.js?v=1795505288'
-import { openRafflePrize, openRaffleRules } from './raffle-rules.js?v=1795505288'
-import { mixHex } from './hero-math.js?v=1795505288'
-import { giftLink, validGift } from './gift-link.js?v=1795505288'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795505288'
+import { ApiError, request } from './api.js?v=1795507282'
+import { CONFIG } from './config.js?v=1795507282'
+import { BRANDS } from './brands.js?v=1795507282'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795507282'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795507282'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795507282'
+import { createGiftPreview } from './gift-preview.js?v=1795507282'
+import { revealCode, startScramble } from './codefx.js?v=1795507282'
+import { RAFFLE_MIN_TICKETS, raffleCountdown, rafflePrizeImage, rafflePrizeName, ticketsFor, ticketsWord } from './raffle.js?v=1795507282'
+import { openRafflePrize, openRaffleRules } from './raffle-rules.js?v=1795507282'
+import { mixHex } from './hero-math.js?v=1795507282'
+import { giftLink, validGift } from './gift-link.js?v=1795507282'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795507282'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -358,16 +358,11 @@ const failMark = () =>
  * участвуют от 3 билетов за день, розыгрыш в 20:00 по Москве.
  */
 const raffleState = (order) => {
-  const prize = rafflePrizeName()
-  if (order.productId !== 'stars') return { title: 'Розыгрыш NFT', line: prize, tickets: 0 }
-  if (!isInTelegram()) return { title: 'Розыгрыш в Telegram', line: prize, tickets: 0 }
+  if (order.productId !== 'stars' || !isInTelegram()) return { title: 'Розыгрыш NFT', tickets: 0 }
   const tickets = ticketsFor(order.summary?.amount)
-  if (tickets === 0) return { title: 'Розыгрыш NFT', line: 'Билет — за 50 звёзд', tickets }
-  if (tickets < RAFFLE_MIN_TICKETS) {
-    const missing = RAFFLE_MIN_TICKETS - tickets
-    return { title: `Ещё ${missing} ${ticketsWord(missing)}`, line: `${tickets} из ${RAFFLE_MIN_TICKETS} для участия`, tickets }
-  }
-  return { title: 'Вы в розыгрыше', line: `${tickets} ${ticketsWord(tickets)}`, tickets }
+  if (tickets === 0) return { title: 'Розыгрыш NFT', tickets }
+  if (tickets < RAFFLE_MIN_TICKETS) return { title: `${tickets} из ${RAFFLE_MIN_TICKETS} билетов`, tickets }
+  return { title: `${tickets} ${ticketsWord(tickets)}`, tickets }
 }
 
 /** Таймер до розыгрыша: тикает раз в секунду, пока строка на экране. */
@@ -402,17 +397,11 @@ const raffleRow = (order) => {
       el('button', {
         class: 'draw-card__info',
         type: 'button',
-        'aria-label': `${state.title}. ${state.line}. До итогов ${raffleCountdown()}. Правила розыгрыша`,
+        'aria-label': `Розыгрыш ${rafflePrizeName()}: ${state.title}. До итогов ${raffleCountdown()}. Правила`,
         onClick: openRaffleRules,
       }, [
-        el('span', { class: 'draw-card__text' }, [
-          el('span', { class: 'draw-card__title', text: state.title }),
-          el('span', { class: `draw-card__line${state.tickets > 0 ? ' draw-card__line--tickets' : ''}`, text: state.line }),
-        ]),
-        el('span', { class: 'draw-card__timer' }, [
-          countdownNode(),
-          el('span', { class: 'draw-card__timer-label', text: 'до итогов' }),
-        ]),
+        el('span', { class: 'draw-card__title', text: state.title }),
+        countdownNode(),
         el('span', { class: 'draw-card__help', text: '?', 'aria-hidden': 'true' }),
       ]),
     ]),

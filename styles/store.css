@@ -2050,16 +2050,16 @@ p.raffle-sheet__tickets--in {
 .draw-card__prize-button {
   flex: none;
   display: grid;
-  padding: 0.625rem 0 0.625rem 0.625rem;
+  padding: 0.5rem 0 0.5rem 0.5rem;
   border: 0;
   background: none;
   cursor: pointer;
 }
 
 .draw-card__image {
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 0.75rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.625rem;
   object-fit: cover;
   transition: transform var(--duration-fast) var(--ease-out-expo);
 }
@@ -2083,54 +2083,23 @@ p.raffle-sheet__tickets--in {
   cursor: pointer;
 }
 
-.draw-card__text {
+.draw-card__title {
   flex: 1 1 auto;
-  display: grid;
-  gap: 0.1875rem;
   min-width: 0;
-}
-
-.draw-card__title,
-.draw-card__line {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-.draw-card__title {
   color: var(--color-text);
   font-size: 0.9375rem;
   font-weight: 600;
-}
-
-.draw-card__line {
-  color: var(--color-text-muted);
-  font-size: 0.8125rem;
-}
-
-.draw-card__line--tickets {
-  color: #ffc24d;
-  font-weight: 600;
-}
-
-.draw-card__timer {
-  flex: none;
-  display: grid;
-  justify-items: end;
-  gap: 0.125rem;
 }
 
 .draw-card__clock {
-  color: var(--color-text);
+  flex: none;
+  color: var(--color-text-muted);
   font-size: 0.9375rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.01em;
-}
-
-.draw-card__timer-label {
-  color: var(--color-text-muted);
-  font-size: 0.6875rem;
 }
 
 /* маленький «?» — правила розыгрыша */
@@ -2171,25 +2140,6 @@ p.raffle-sheet__tickets--in {
 .draw-card__invite:hover,
 .draw-card__invite:focus-visible {
   background: #1d1709;
-}
-
-/* узкие телефоны: картинка поменьше — текст и отсчёт помещаются целиком */
-@media (max-width: 360px) {
-  .draw-card__info {
-    gap: 0.5rem;
-    padding-inline: 0.625rem;
-  }
-
-  .draw-card__image {
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 0.625rem;
-  }
-
-  .draw-card__title,
-  .draw-card__clock {
-    font-size: 0.875rem;
-  }
 }
 
 /* ── Окно «Как участвовать»: заголовок, три коротких абзаца, кнопка ── */
