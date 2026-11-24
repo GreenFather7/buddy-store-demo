@@ -2083,12 +2083,32 @@ p.raffle-sheet__tickets--in {
   cursor: pointer;
 }
 
-/* на узких экранах «10 билетов на розыгрыш» спокойно переносится на вторую строку */
-.draw-card__title {
+.draw-card__text {
   flex: 1 1 auto;
+  display: grid;
+  gap: 0.125rem;
   min-width: 0;
+}
+
+.draw-card__title,
+.draw-card__line {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.draw-card__line {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+/* «Вы участвуете» — зелёным, как галочка «готово» */
+.draw-card__title.draw-card__title--in {
+  color: #30d158;
+}
+
+.draw-card__title {
   line-height: 1.25;
-  text-wrap: balance;
   color: var(--color-text);
   font-size: 0.9375rem;
   font-weight: 600;

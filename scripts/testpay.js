@@ -2,8 +2,8 @@
 // В окне выбирается, чем закончится заказ, — так проверяются все экраны после оплаты.
 // В боевом режиме модуль не используется.
 
-import { el, textWithIcons } from './dom.js?v=1795508797'
-import { formatRub } from './lib.js?v=1795508797'
+import { el, textWithIcons } from './dom.js?v=1795510109'
+import { formatRub } from './lib.js?v=1795510109'
 
 const BALANCE_KEY = 'buddy.test.balance'
 const START_BALANCE = 100000
