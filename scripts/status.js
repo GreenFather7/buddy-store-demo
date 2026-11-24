@@ -1,16 +1,16 @@
-import { ApiError, request } from './api.js?v=1795504936'
-import { CONFIG } from './config.js?v=1795504936'
-import { BRANDS } from './brands.js?v=1795504936'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795504936'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795504936'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795504936'
-import { createGiftPreview } from './gift-preview.js?v=1795504936'
-import { revealCode, startScramble } from './codefx.js?v=1795504936'
-import { RAFFLE_MIN_TICKETS, raffleCountdown, rafflePrizeImage, rafflePrizeName, ticketsFor, ticketsWord } from './raffle.js?v=1795504936'
-import { openRafflePrize, openRaffleRules } from './raffle-rules.js?v=1795504936'
-import { mixHex } from './hero-math.js?v=1795504936'
-import { giftLink, validGift } from './gift-link.js?v=1795504936'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795504936'
+import { ApiError, request } from './api.js?v=1795505288'
+import { CONFIG } from './config.js?v=1795505288'
+import { BRANDS } from './brands.js?v=1795505288'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795505288'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795505288'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795505288'
+import { createGiftPreview } from './gift-preview.js?v=1795505288'
+import { revealCode, startScramble } from './codefx.js?v=1795505288'
+import { RAFFLE_MIN_TICKETS, raffleCountdown, rafflePrizeImage, rafflePrizeName, ticketsFor, ticketsWord } from './raffle.js?v=1795505288'
+import { openRafflePrize, openRaffleRules } from './raffle-rules.js?v=1795505288'
+import { mixHex } from './hero-math.js?v=1795505288'
+import { giftLink, validGift } from './gift-link.js?v=1795505288'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795505288'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -362,11 +362,12 @@ const raffleState = (order) => {
   if (order.productId !== 'stars') return { title: 'Розыгрыш NFT', line: prize, tickets: 0 }
   if (!isInTelegram()) return { title: 'Розыгрыш в Telegram', line: prize, tickets: 0 }
   const tickets = ticketsFor(order.summary?.amount)
-  if (tickets === 0) return { title: 'Билет — от 50 звёзд', line: prize, tickets }
-  const line = `🎟 ${tickets} ${ticketsWord(tickets)}`
-  const missing = RAFFLE_MIN_TICKETS - tickets
-  if (missing > 0) return { title: `Ещё ${missing} 🎟 до участия`, line, tickets }
-  return { title: 'Вы в розыгрыше', line, tickets }
+  if (tickets === 0) return { title: 'Розыгрыш NFT', line: 'Билет — за 50 звёзд', tickets }
+  if (tickets < RAFFLE_MIN_TICKETS) {
+    const missing = RAFFLE_MIN_TICKETS - tickets
+    return { title: `Ещё ${missing} ${ticketsWord(missing)}`, line: `${tickets} из ${RAFFLE_MIN_TICKETS} для участия`, tickets }
+  }
+  return { title: 'Вы в розыгрыше', line: `${tickets} ${ticketsWord(tickets)}`, tickets }
 }
 
 /** Таймер до розыгрыша: тикает раз в секунду, пока строка на экране. */
@@ -386,7 +387,7 @@ const countdownNode = () => {
 /**
  * Плашка розыгрыша после покупки. Верхний ярус: картинка подарка (нажатие — окно подарка
  * в Telegram), статус и билеты, справа отсчёт и «?» (нажатие — правила). Нижний, за тонкой
- * линией: «Пригласить друга · +1 🎟» (только в Telegram, где известен свой id).
+ * линией: «Пригласить друга · +1 билет» (только в Telegram, где известен свой id).
  */
 const raffleRow = (order) => {
   const state = raffleState(order)
@@ -483,7 +484,7 @@ const inviteButton = () => {
     // маленькая кнопка внутри золотой плашки розыгрыша: это про билеты, а не про карту
     class: 'draw-card__invite',
     type: 'button',
-    text: 'Пригласить друга · +1 🎟',
+    text: 'Пригласить друга · +1 билет',
     'aria-label': 'Пригласить друга — плюс один билет в розыгрыш',
     onClick: () => {
       const params = new URLSearchParams({ url: link, text: INVITE_TEXT })

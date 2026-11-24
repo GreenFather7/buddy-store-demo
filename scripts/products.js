@@ -1,6 +1,6 @@
-import { ApiError, request } from './api.js?v=1795504936'
-import { CONFIG } from './config.js?v=1795504936'
-import { BRANDS } from './brands.js?v=1795504936'
+import { ApiError, request } from './api.js?v=1795505288'
+import { CONFIG } from './config.js?v=1795505288'
+import { BRANDS } from './brands.js?v=1795505288'
 import {
   ORDER_STATE,
   flagUrl,
@@ -14,7 +14,7 @@ import {
   normalizeUsername,
   parseIntInRange,
   trimDecimals,
-} from './lib.js?v=1795504936'
+} from './lib.js?v=1795505288'
 
 const STARS_MIN = 50
 const STARS_MAX = 5000
@@ -127,8 +127,8 @@ const stars = {
   // «Цена для подписчиков канала» или «Подписчикам канала — дешевле ›» со ссылкой на канал
   payNote: (_values, _options, quote) => {
     if (!quote) return null
-    if (quote.isSubscriber) return { text: '🔔 Цена для подписчиков канала' }
-    return channelLink() ? { text: '🔔 Подписчикам канала — дешевле ›', link: channelLink() } : null
+    if (quote.isSubscriber) return { text: 'Цена для подписчиков канала' }
+    return channelLink() ? { text: 'Подписчикам канала — дешевле ›', link: channelLink() } : null
   },
   ...starsCheckout({
     invoicePath: '/api/create_invoice',
