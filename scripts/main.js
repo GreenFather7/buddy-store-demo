@@ -1,20 +1,21 @@
-import { ApiError } from './api.js?v=1795510109'
-import { BRANDS } from './brands.js?v=1795510109'
-import { CONFIG } from './config.js?v=1795510109'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795510109'
-import { ensureFreshBuild } from './fresh.js?v=1795510109'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795510109'
-import { createHero, heroGlyph } from './hero.js?v=1795510109'
-import { mixHex } from './hero-math.js?v=1795510109'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795510109'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795510109'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795510109'
-import { readGiftLink } from './gift-link.js?v=1795510109'
-import { hapticError, initTelegram } from './telegram.js?v=1795510109'
-import { setAmount } from './odometer.js?v=1795510109'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795510109'
-import { addTicketsForStars, mountRaffle } from './raffle.js?v=1795510109'
-import { settleDemoOrder } from './mock.js?v=1795510109'
+import { ApiError } from './api.js?v=1795513418'
+import { BRANDS } from './brands.js?v=1795513418'
+import { CONFIG } from './config.js?v=1795513418'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795513418'
+import { ensureFreshBuild } from './fresh.js?v=1795513418'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795513418'
+import { createHero, heroGlyph } from './hero.js?v=1795513418'
+import { mixHex } from './hero-math.js?v=1795513418'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795513418'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795513418'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795513418'
+import { readGiftLink } from './gift-link.js?v=1795513418'
+import { hapticError, initTelegram } from './telegram.js?v=1795513418'
+import { setAmount } from './odometer.js?v=1795513418'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795513418'
+import { addTicketsForStars, mountRaffle } from './raffle.js?v=1795513418'
+import { settleDemoOrder } from './mock.js?v=1795513418'
+import { hintRowScroll } from './scroll-hint.js?v=1795513418'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -858,6 +859,7 @@ const init = () => {
     }
   })
   form.addEventListener('submit', submit)
+  hintRowScroll(productsEl, prefersLessMotion)
   if (CONFIG.demo) {
     mountBalance(noteEl)
     // розыгрыш NFT пока скрыт с главного экрана (готовый модуль — raffle.js); вернуть — раскомментировать
