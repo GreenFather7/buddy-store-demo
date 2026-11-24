@@ -3,9 +3,9 @@
 // «Скопировать код». Картинка рисуется заранее, как только код готов: браузер разрешает
 // открыть окно «Поделиться» только сразу по нажатию, ждать отрисовку там нельзя.
 
-import { BRANDS } from './brands.js?v=1795514661'
-import { flagUrl } from './lib.js?v=1795514661'
-import { mixHex } from './hero-math.js?v=1795514661'
+import { BRANDS } from './brands.js?v=1795515186'
+import { flagUrl } from './lib.js?v=1795515186'
+import { mixHex } from './hero-math.js?v=1795515186'
 
 const WIDTH = 1200
 const HEIGHT = 760

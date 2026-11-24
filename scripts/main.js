@@ -1,21 +1,21 @@
-import { ApiError } from './api.js?v=1795514661'
-import { BRANDS } from './brands.js?v=1795514661'
-import { CONFIG } from './config.js?v=1795514661'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795514661'
-import { ensureFreshBuild } from './fresh.js?v=1795514661'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795514661'
-import { createHero, heroGlyph } from './hero.js?v=1795514661'
-import { mixHex } from './hero-math.js?v=1795514661'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795514661'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795514661'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795514661'
-import { readGiftLink } from './gift-link.js?v=1795514661'
-import { hapticError, initTelegram } from './telegram.js?v=1795514661'
-import { setAmount } from './odometer.js?v=1795514661'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795514661'
-import { addTicketsForStars, mountRaffle } from './raffle.js?v=1795514661'
-import { settleDemoOrder } from './mock.js?v=1795514661'
-import { centerCapsuleInWheel, mountCapsuleWheel } from './capsule-wheel.js?v=1795514661'
+import { ApiError } from './api.js?v=1795515186'
+import { BRANDS } from './brands.js?v=1795515186'
+import { CONFIG } from './config.js?v=1795515186'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795515186'
+import { ensureFreshBuild } from './fresh.js?v=1795515186'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795515186'
+import { createHero, heroGlyph } from './hero.js?v=1795515186'
+import { mixHex } from './hero-math.js?v=1795515186'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795515186'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795515186'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795515186'
+import { readGiftLink } from './gift-link.js?v=1795515186'
+import { hapticError, initTelegram } from './telegram.js?v=1795515186'
+import { setAmount } from './odometer.js?v=1795515186'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795515186'
+import { addTicketsForStars, mountRaffle } from './raffle.js?v=1795515186'
+import { settleDemoOrder } from './mock.js?v=1795515186'
+import { centerCapsuleInWheel, mountCapsuleWheel } from './capsule-wheel.js?v=1795515186'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -857,7 +857,9 @@ const init = () => {
     }
   })
   form.addEventListener('submit', submit)
-  mountCapsuleWheel(productsEl, (capsule) => selectProduct(capsule.dataset.product, capsule.dataset.service))
+  // ?wheel=icons — вариант для сравнения: по краям только иконки, по центру линза с названием
+  const isIconWheel = new URLSearchParams(window.location.search).get('wheel') === 'icons'
+  mountCapsuleWheel(productsEl, (capsule) => selectProduct(capsule.dataset.product, capsule.dataset.service), { iconsOnly: isIconWheel })
   if (CONFIG.demo) {
     mountBalance(noteEl)
     // розыгрыш NFT пока скрыт с главного экрана (готовый модуль — raffle.js); вернуть — раскомментировать

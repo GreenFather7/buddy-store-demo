@@ -2231,3 +2231,52 @@ p.raffle-sheet__tickets--in {
     font-size: 0.875rem;
   }
 }
+
+/* ── Барабан разделов (capsule-wheel.js) ─────────────────────────────
+   Строка — точка отсчёта для расчёта центра; соседи могут расступаться (--wheel-shift). */
+.products {
+  position: relative;
+}
+
+.products .product {
+  translate: var(--wheel-shift, 0px) 0;
+}
+
+/* Вариант ?wheel=icons: по краям только иконки, по центру — линза с иконкой и названием */
+.products--icons {
+  /* браузерная доводка учитывала бы сдвиг соседей — до центра доводит capsule-wheel.js */
+  scroll-snap-type: none;
+}
+
+.products--icons .product {
+  gap: 0;
+  padding-inline: 0.625rem;
+}
+
+.products--icons .product > span {
+  display: none;
+}
+
+.checkout {
+  position: relative;
+}
+
+.product.wheel-lens {
+  position: absolute;
+  top: var(--lens-top, 0.25rem);
+  left: 50%;
+  z-index: 2;
+  opacity: 1;
+  scale: 1;
+  translate: -50% 0;
+  pointer-events: none;
+}
+
+.products[hidden] + .wheel-lens {
+  display: none;
+}
+
+/* недоступный раздел — не точка остановки барабана: строка проезжает его до соседнего */
+.products .product:disabled {
+  scroll-snap-align: none;
+}
