@@ -1,15 +1,16 @@
-import { ApiError, request } from './api.js?v=1795441095'
-import { CONFIG } from './config.js?v=1795441095'
-import { BRANDS } from './brands.js?v=1795441095'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795441095'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795441095'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795441095'
-import { createGiftPreview } from './gift-preview.js?v=1795441095'
-import { revealCode, startScramble } from './codefx.js?v=1795441095'
-import { RAFFLE_MIN_TICKETS, raffleCountdown, rafflePrizeImage, rafflePrizeLink, rafflePrizeName, ticketsFor } from './raffle.js?v=1795441095'
-import { mixHex } from './hero-math.js?v=1795441095'
-import { giftLink, validGift } from './gift-link.js?v=1795441095'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795441095'
+import { ApiError, request } from './api.js?v=1795504228'
+import { CONFIG } from './config.js?v=1795504228'
+import { BRANDS } from './brands.js?v=1795504228'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795504228'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795504228'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795504228'
+import { createGiftPreview } from './gift-preview.js?v=1795504228'
+import { revealCode, startScramble } from './codefx.js?v=1795504228'
+import { RAFFLE_MIN_TICKETS, raffleCountdown, rafflePrizeImage, rafflePrizeName, ticketsFor, ticketsWord } from './raffle.js?v=1795504228'
+import { openRafflePrize, openRaffleRules } from './raffle-rules.js?v=1795504228'
+import { mixHex } from './hero-math.js?v=1795504228'
+import { giftLink, validGift } from './gift-link.js?v=1795504228'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795504228'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -352,18 +353,20 @@ const failMark = () =>
 // Как в боте звёзд: каждый день в 20:00 (МСК) разыгрывается NFT-подарок, билеты — только за звёзды
 // (1 за 50). Покупателю на сайте без Telegram бэкенд билеты не начисляет — ему не обещаем.
 /**
- * Розыгрыш — минимум слов. Верхняя строка: участвует ли человек; под ней — какой подарок
- * разыгрывается и сколько у него билетов. Как в боте: 1 билет за 50 звёзд, участвуют от 3 билетов
- * за день, розыгрыш в 20:00 по Москве. Если билетов нет — как их получить.
+ * Розыгрыш — минимум слов. Заголовок: участвует ли человек; под ним — его билеты
+ * (а если билетов нет — какой подарок разыгрывается). Как в боте: 1 билет за 50 звёзд,
+ * участвуют от 3 билетов за день, розыгрыш в 20:00 по Москве.
  */
 const raffleState = (order) => {
-  if (order.productId !== 'stars') return { title: 'Розыгрыш NFT', tickets: null }
-  if (!isInTelegram()) return { title: 'Розыгрыш в Telegram', tickets: null }
+  const prize = rafflePrizeName()
+  if (order.productId !== 'stars') return { title: 'Розыгрыш NFT', line: prize, tickets: 0 }
+  if (!isInTelegram()) return { title: 'Розыгрыш в Telegram', line: prize, tickets: 0 }
   const tickets = ticketsFor(order.summary?.amount)
-  if (tickets === 0) return { title: 'Билет — от 50 звёзд', tickets: null }
+  if (tickets === 0) return { title: 'Билет — от 50 звёзд', line: prize, tickets }
+  const line = `🎟 ${tickets} ${ticketsWord(tickets)}`
   const missing = RAFFLE_MIN_TICKETS - tickets
-  if (missing > 0) return { title: `Ещё ${missing} 🎟 до участия`, tickets }
-  return { title: 'Вы в розыгрыше', tickets }
+  if (missing > 0) return { title: `Ещё ${missing} 🎟 до участия`, line, tickets }
+  return { title: 'Вы в розыгрыше', line, tickets }
 }
 
 /** Таймер до розыгрыша: тикает раз в секунду, пока строка на экране. */
@@ -381,46 +384,38 @@ const countdownNode = () => {
 }
 
 /**
- * Показывает разыгрываемый NFT в стандартном окне подарка Telegram (ссылка t.me/nft/…):
- * в мини-приложении Telegram открывает его у себя, на сайте ссылка уходит в Telegram.
- */
-const openRafflePrize = () => {
-  const link = rafflePrizeLink()
-  const telegram = window.Telegram?.WebApp
-  if (telegram?.openTelegramLink) telegram.openTelegramLink(link)
-  else window.open(link, '_blank', 'noopener')
-}
-
-/**
- * Карточка розыгрыша после покупки — два яруса. Верхний (нажатие показывает подарок):
- * картинка подарка, участвует ли человек, название подарка и билеты, справа — обратный отсчёт.
- * Нижний, за тонкой линией: «Пригласить друга · +1 🎟» (только в Telegram, где известен свой id).
+ * Плашка розыгрыша после покупки. Верхний ярус: картинка подарка (нажатие — окно подарка
+ * в Telegram), статус и билеты, справа отсчёт и «?» (нажатие — правила). Нижний, за тонкой
+ * линией: «Пригласить друга · +1 🎟» (только в Telegram, где известен свой id).
  */
 const raffleRow = (order) => {
-  const invite = inviteButton()
   const state = raffleState(order)
-  const prize = rafflePrizeName()
   return el('div', { class: 'draw-card' }, [
-    el('button', {
-      class: 'draw-card__main',
-      type: 'button',
-      'aria-label': `${state.title}: ${prize}. Билетов: ${state.tickets ?? 0}. До розыгрыша ${raffleCountdown()}. Посмотреть подарок`,
-      onClick: openRafflePrize,
-    }, [
-      el('img', { class: 'draw-card__image', src: rafflePrizeImage(), alt: '', width: '44', height: '44' }),
-      el('span', { class: 'draw-card__text' }, [
-        el('span', { class: 'draw-card__title', text: state.title }),
-        el('span', { class: 'draw-card__prize' }, [
-          prize,
-          state.tickets && el('span', { class: 'draw-card__tickets', text: ` · 🎟 ${state.tickets}` }),
+    el('div', { class: 'draw-card__main' }, [
+      el('button', {
+        class: 'draw-card__prize-button',
+        type: 'button',
+        'aria-label': `Посмотреть подарок ${rafflePrizeName()}`,
+        onClick: openRafflePrize,
+      }, [el('img', { class: 'draw-card__image', src: rafflePrizeImage(), alt: '', width: '44', height: '44' })]),
+      el('button', {
+        class: 'draw-card__info',
+        type: 'button',
+        'aria-label': `${state.title}. ${state.line}. До итогов ${raffleCountdown()}. Правила розыгрыша`,
+        onClick: openRaffleRules,
+      }, [
+        el('span', { class: 'draw-card__text' }, [
+          el('span', { class: 'draw-card__title', text: state.title }),
+          el('span', { class: `draw-card__line${state.tickets > 0 ? ' draw-card__line--tickets' : ''}`, text: state.line }),
         ]),
-      ]),
-      el('span', { class: 'draw-card__timer' }, [
-        countdownNode(),
-        el('span', { class: 'draw-card__timer-label', text: 'до итогов' }),
+        el('span', { class: 'draw-card__timer' }, [
+          countdownNode(),
+          el('span', { class: 'draw-card__timer-label', text: 'до итогов' }),
+        ]),
+        el('span', { class: 'draw-card__help', text: '?', 'aria-hidden': 'true' }),
       ]),
     ]),
-    invite,
+    inviteButton(),
   ])
 }
 

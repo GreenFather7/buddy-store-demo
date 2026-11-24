@@ -3,14 +3,18 @@
 // Пока у бэкенда нет метода для сайта, данные розыгрыша есть только в тестовом режиме:
 // приз — мишка из анимаций мини-приложения, билеты копятся за тестовые покупки звёзд.
 
-import { el } from './dom.js?v=1795441095'
-import { playLottie } from './gift-preview.js?v=1795441095'
+import { el } from './dom.js?v=1795504228'
+import { playLottie } from './gift-preview.js?v=1795504228'
 
 const RAFFLE_HOUR = 20
 const STARS_PER_TICKET = 50
 const MIN_TICKETS = 3
 /** С какого числа билетов за день человек участвует в розыгрыше. */
 export const RAFFLE_MIN_TICKETS = MIN_TICKETS
+/** Сколько звёзд за один билет. */
+export const RAFFLE_STARS_PER_TICKET = STARS_PER_TICKET
+/** Час розыгрыша по Москве. */
+export const RAFFLE_HOUR_MSK = RAFFLE_HOUR
 const TICKETS_KEY = 'buddy.test.tickets'
 const CLOCK_TICK_MS = 1000
 const MS_PER_SECOND = 1000
