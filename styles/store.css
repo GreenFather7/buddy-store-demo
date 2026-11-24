@@ -93,12 +93,12 @@
   /* без этого строка капсул растянула бы карточку вместо прокрутки */
   min-width: 0;
   margin-inline: calc(var(--products-bleed) * -1);
-  padding: 0.25rem var(--products-bleed) 0.75rem;
+  /* поля по краям считает capsule-wheel.js: так и первая, и последняя капсула встают в центр */
+  padding: 0.25rem var(--wheel-pad-end, var(--products-bleed)) 0.75rem var(--wheel-pad-start, var(--products-bleed));
   margin-bottom: -0.75rem;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  scroll-snap-type: x proximity;
-  scroll-padding-inline: var(--products-bleed);
+  scroll-snap-type: x mandatory;
   scrollbar-width: none;
   mask-image: linear-gradient(
     90deg,
@@ -132,7 +132,10 @@
   font-size: var(--text-sm);
   font-weight: 600;
   white-space: nowrap;
-  scroll-snap-align: start;
+  /* барабан: капсула встаёт по центру, соседи тише и мельче — значения ставит capsule-wheel.js */
+  scroll-snap-align: center;
+  opacity: var(--wheel-opacity, 1);
+  scale: var(--wheel-scale, 1);
   cursor: pointer;
   transition:
     color var(--duration-fast),
