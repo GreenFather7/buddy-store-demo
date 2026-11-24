@@ -93,8 +93,8 @@
   /* без этого строка капсул растянула бы карточку вместо прокрутки */
   min-width: 0;
   margin-inline: calc(var(--products-bleed) * -1);
-  /* поля по краям считает capsule-wheel.js: так и первая, и последняя капсула встают в центр */
-  padding: 0.25rem var(--wheel-pad-end, var(--products-bleed)) 0.75rem var(--wheel-pad-start, var(--products-bleed));
+  /* строка крутится по кругу (capsule-wheel.js): соседи видны с обеих сторон */
+  padding: 0.25rem var(--products-bleed) 0.75rem;
   margin-bottom: -0.75rem;
   overflow-x: auto;
   overscroll-behavior-x: contain;

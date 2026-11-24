@@ -1,9 +1,9 @@
 // Запуск внутри Telegram как мини-приложение: разворачиваемся на весь экран.
 // Скрипт Telegram подгружается только там — обычным посетителям сайта он не нужен.
 
-import { isTelegramLaunch } from './lib.js?v=1795513645'
+import { isTelegramLaunch } from './lib.js?v=1795514178'
 
-const SDK_URL = 'scripts/vendor/telegram-web-app.js?v=1795513645'
+const SDK_URL = 'scripts/vendor/telegram-web-app.js?v=1795514178'
 const APP_COLOR = '#151517'
 const FULLSCREEN_MIN_VERSION = '8.0'
 /** На компьютере полноэкранный режим закрывает весь монитор — включаем только на телефонах. */
@@ -58,4 +58,20 @@ export const hapticError = () => {
     return
   }
   navigator.vibrate?.(ERROR_VIBRATION_MS)
+}
+
+/** Короткий толчок браузерной вибрации (Android) — как щелчок колёсика. */
+const SELECTION_VIBRATION_MS = 8
+
+/**
+ * Лёгкий щелчок при смене раздела — как у колёсика выбора в iOS. В Telegram — его тактильный
+ * отклик «выбор изменился», в браузере на Android — короткая вибрация.
+ */
+export const hapticSelection = () => {
+  const app = window.Telegram?.WebApp
+  if (app?.HapticFeedback && app.isVersionAtLeast?.(HAPTIC_MIN_VERSION)) {
+    app.HapticFeedback.selectionChanged()
+    return
+  }
+  navigator.vibrate?.(SELECTION_VIBRATION_MS)
 }

@@ -1,21 +1,21 @@
-import { ApiError } from './api.js?v=1795513645'
-import { BRANDS } from './brands.js?v=1795513645'
-import { CONFIG } from './config.js?v=1795513645'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795513645'
-import { ensureFreshBuild } from './fresh.js?v=1795513645'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795513645'
-import { createHero, heroGlyph } from './hero.js?v=1795513645'
-import { mixHex } from './hero-math.js?v=1795513645'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795513645'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795513645'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795513645'
-import { readGiftLink } from './gift-link.js?v=1795513645'
-import { hapticError, initTelegram } from './telegram.js?v=1795513645'
-import { setAmount } from './odometer.js?v=1795513645'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795513645'
-import { addTicketsForStars, mountRaffle } from './raffle.js?v=1795513645'
-import { settleDemoOrder } from './mock.js?v=1795513645'
-import { mountCapsuleWheel } from './capsule-wheel.js?v=1795513645'
+import { ApiError } from './api.js?v=1795514178'
+import { BRANDS } from './brands.js?v=1795514178'
+import { CONFIG } from './config.js?v=1795514178'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795514178'
+import { ensureFreshBuild } from './fresh.js?v=1795514178'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795514178'
+import { createHero, heroGlyph } from './hero.js?v=1795514178'
+import { mixHex } from './hero-math.js?v=1795514178'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795514178'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795514178'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795514178'
+import { readGiftLink } from './gift-link.js?v=1795514178'
+import { hapticError, initTelegram } from './telegram.js?v=1795514178'
+import { setAmount } from './odometer.js?v=1795514178'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795514178'
+import { addTicketsForStars, mountRaffle } from './raffle.js?v=1795514178'
+import { settleDemoOrder } from './mock.js?v=1795514178'
+import { centerCapsuleInWheel, mountCapsuleWheel } from './capsule-wheel.js?v=1795514178'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -244,7 +244,8 @@ const priceSignature = () => JSON.stringify(priceKeys().map((key) => state.value
 // ── Шапка ─────────────────────────────────────────────────────────
 /** Капсула в строке разделов: раздел или, для гифт-карт, конкретный сервис. */
 const capsule = (productId, service) =>
-  [...productsEl.querySelectorAll('[data-product]')].find(
+  // копии капсул для круга (data-clone) не считаем — только настоящие
+  [...productsEl.querySelectorAll('[data-product]:not([data-clone])')].find(
     (button) => button.dataset.product === productId && (button.dataset.service ?? '') === (service ?? ''),
   )
 
@@ -681,12 +682,7 @@ const prefillTestValues = () => {
   })
 }
 
-const centerCapsule = (button) => {
-  const rowBox = productsEl.getBoundingClientRect()
-  const box = button.getBoundingClientRect()
-  const shift = box.left + box.width / 2 - (rowBox.left + rowBox.width / 2)
-  productsEl.scrollTo({ left: productsEl.scrollLeft + shift, behavior: prefersLessMotion.matches ? 'auto' : 'smooth' })
-}
+const centerCapsule = (button) => centerCapsuleInWheel(productsEl, button, prefersLessMotion.matches)
 
 /**
  * @param {string} productId
@@ -700,7 +696,7 @@ const selectProduct = (productId, service) => {
   quotedSignature = null // новый раздел — цену считаем заново
   state = { product, values, optionData: {}, method: product.methods[0], quote: null, isBusy: false }
   const active = capsule(productId, service)
-  productsEl.querySelectorAll('[data-product]').forEach((button) => {
+  productsEl.querySelectorAll('[data-product]:not([data-clone])').forEach((button) => {
     button.setAttribute('aria-checked', String(button === active))
   })
   // Строка разделов листается: выбранная капсула должна быть видна целиком.
@@ -774,7 +770,7 @@ const openStatus = (order) => {
 // Тестовый режим: вместо платёжки — окно тестовой оплаты, где выбирается исход заказа.
 // Заказ не сохраняется: после перезагрузки тестовой страницы восстанавливать нечего.
 const payInTestMode = async (order) => {
-  const activeCapsule = productsEl.querySelector('[aria-checked="true"]')
+  const activeCapsule = productsEl.querySelector('[aria-checked="true"]:not([data-clone])')
   const outcome = await askTestPayment({
     title: order.summary?.line ? `${activeCapsule?.textContent.trim() ?? ''} · ${order.summary.line}` : (activeCapsule?.textContent.trim() ?? ''),
     priceText: state.quote?.[state.method] ?? '',
