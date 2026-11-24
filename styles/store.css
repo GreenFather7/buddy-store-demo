@@ -2177,6 +2177,17 @@ p.raffle-sheet__tickets--in {
   line-height: 1.45;
 }
 
+.draw-rules__link {
+  color: #ffc24d;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.draw-rules__link:hover,
+.draw-rules__link:focus-visible {
+  text-decoration: underline;
+}
+
 .draw-rules__ok {
   margin-top: 0.75rem;
 }
@@ -2189,3 +2200,11 @@ p.raffle-sheet__tickets--in {
   gap: 0.25rem 1.25rem;
 }
 
+
+/* узкие телефоны: строка под заголовком («Скопируйте и активируйте в App Store») остаётся
+   одной, но не шире экрана — иначе растягивает карточку и кнопки вправо */
+@media (max-width: 360px) {
+  .status__text {
+    font-size: 0.875rem;
+  }
+}

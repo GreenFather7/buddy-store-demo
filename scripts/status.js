@@ -1,16 +1,16 @@
-import { ApiError, request } from './api.js?v=1795508004'
-import { CONFIG } from './config.js?v=1795508004'
-import { BRANDS } from './brands.js?v=1795508004'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795508004'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795508004'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795508004'
-import { createGiftPreview } from './gift-preview.js?v=1795508004'
-import { revealCode, startScramble } from './codefx.js?v=1795508004'
-import { RAFFLE_MIN_TICKETS, raffleCountdown, rafflePrizeImage, rafflePrizeName, ticketsFor, ticketsWord } from './raffle.js?v=1795508004'
-import { openRafflePrize, openRaffleRules } from './raffle-rules.js?v=1795508004'
-import { mixHex } from './hero-math.js?v=1795508004'
-import { giftLink, validGift } from './gift-link.js?v=1795508004'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795508004'
+import { ApiError, request } from './api.js?v=1795508797'
+import { CONFIG } from './config.js?v=1795508797'
+import { BRANDS } from './brands.js?v=1795508797'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795508797'
+import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795508797'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795508797'
+import { createGiftPreview } from './gift-preview.js?v=1795508797'
+import { revealCode, startScramble } from './codefx.js?v=1795508797'
+import { RAFFLE_MIN_TICKETS, raffleCountdown, rafflePrizeImage, rafflePrizeName, ticketsFor, ticketsWord } from './raffle.js?v=1795508797'
+import { openRafflePrize, openRaffleRules } from './raffle-rules.js?v=1795508797'
+import { mixHex } from './hero-math.js?v=1795508797'
+import { giftLink, validGift } from './gift-link.js?v=1795508797'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795508797'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -228,7 +228,7 @@ const codeCard = (order, codes, waiting = 'issuing', { isReceived = false } = {}
 }
 
 // не «Поделиться»: человек дарит эту карту другому — так и пишем
-const SHARE_LABEL = '🎁 Подарить карту'
+const SHARE_LABEL = 'Подарить эту карту'
 const SHARE_RESULT = { copied: 'Ссылка скопирована', failed: 'Не получилось, скопируйте код' }
 
 /**
@@ -578,7 +578,7 @@ export const showStatus = (container, order, onClose) => {
     const isFinal = FINAL_STATES.includes(result.state)
     const isDone = result.state === ORDER_STATE.DONE
     const viewItems = VIEW[result.state](order, result).filter(Boolean)
-    // «Подарить карту» уходит из середины экрана вниз — в строку тихих ссылок
+    // «Подарить эту карту» уходит из середины экрана вниз — в строку тихих ссылок
     const gift = viewItems.find((node) => node.dataset?.role === 'gift') ?? null
     const items = viewItems.filter((node) => node !== gift)
     // После успешной покупки — строка розыгрыша: картинка подарка, участвует ли человек, «+1 за друга».

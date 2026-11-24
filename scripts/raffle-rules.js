@@ -1,23 +1,49 @@
 // Окно «Как участвовать» — открывается знаком «?» на плашке розыгрыша после покупки.
 // Обычный короткий текст без списков и значков. Правила — как в боте звёзд.
 
-import { el } from './dom.js?v=1795508004'
+import { el } from './dom.js?v=1795508797'
+import { CONFIG } from './config.js?v=1795508797'
 import {
   RAFFLE_HOUR_MSK,
   RAFFLE_MIN_TICKETS,
   RAFFLE_STARS_PER_TICKET,
   rafflePrizeLink,
-} from './raffle.js?v=1795508004'
+} from './raffle.js?v=1795508797'
 
 /**
  * Показывает разыгрываемый NFT в стандартном окне подарка Telegram (ссылка t.me/nft/…):
  * в мини-приложении Telegram открывает его у себя, на сайте ссылка уходит в Telegram.
  */
-export const openRafflePrize = () => {
-  const link = rafflePrizeLink()
+const openTelegram = (link) => {
   const telegram = window.Telegram?.WebApp
   if (telegram?.openTelegramLink) telegram.openTelegramLink(link)
   else window.open(link, '_blank', 'noopener')
+}
+
+export const openRafflePrize = () => openTelegram(rafflePrizeLink())
+
+/** Канал, где каждый день публикуют итоги, — тот же, что даёт подписчикам цену ниже. */
+const channelUrl = () => CONFIG.channelUrl || ''
+const channelName = (url) => `@${url.replace(/^https?:\/\/t\.me\//, '').replace(/\/.*$/, '')}`
+
+/** «Итоги каждый день в 20:00 МСК в канале @stars_buddy. Больше билетов — больше шансов.» */
+const resultsLine = () => {
+  const url = channelUrl()
+  const when = `Итоги каждый день в ${RAFFLE_HOUR_MSK}:00 МСК`
+  const tail = '. Больше билетов — больше шансов.'
+  if (!url) return el('p', { class: 'draw-rules__text', text: when + tail })
+  const link = el('a', {
+    class: 'draw-rules__link',
+    href: url,
+    target: '_blank',
+    rel: 'noopener',
+    text: channelName(url),
+    onClick: (event) => {
+      event.preventDefault()
+      openTelegram(url)
+    },
+  })
+  return el('p', { class: 'draw-rules__text' }, [`${when} в канале `, link, tail])
 }
 
 /** Три шага — коротко, как инструкция. */
@@ -44,7 +70,7 @@ export const openRaffleRules = () => {
     el('div', { class: 'test-sheet__panel draw-rules__panel' }, [
       el('h2', { class: 'draw-rules__title', id: 'draw-rules-title', text: 'Как участвовать' }),
       el('ol', { class: 'draw-rules__steps' }, STEPS.map((text) => el('li', { text }))),
-      el('p', { class: 'draw-rules__text', text: `Итоги каждый день в ${RAFFLE_HOUR_MSK}:00 МСК. Больше билетов — больше шансов.` }),
+      resultsLine(),
       ok,
     ]),
   ])
