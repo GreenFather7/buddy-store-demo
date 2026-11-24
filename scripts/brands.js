@@ -13,6 +13,8 @@ export const BRANDS = Object.freeze({
   },
   ps: {
     label: 'PlayStation',
+    // короче в строке разделов — как Sony сама пишет магазин: «PS Store»
+    capsule: 'PS Store',
     from: '#003791',
     to: '#0070d1',
     icon: '#1a7fe6',

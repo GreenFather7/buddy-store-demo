@@ -1,21 +1,21 @@
-import { ApiError } from './api.js?v=1795515186'
-import { BRANDS } from './brands.js?v=1795515186'
-import { CONFIG } from './config.js?v=1795515186'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795515186'
-import { ensureFreshBuild } from './fresh.js?v=1795515186'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795515186'
-import { createHero, heroGlyph } from './hero.js?v=1795515186'
-import { mixHex } from './hero-math.js?v=1795515186'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795515186'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795515186'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795515186'
-import { readGiftLink } from './gift-link.js?v=1795515186'
-import { hapticError, initTelegram } from './telegram.js?v=1795515186'
-import { setAmount } from './odometer.js?v=1795515186'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795515186'
-import { addTicketsForStars, mountRaffle } from './raffle.js?v=1795515186'
-import { settleDemoOrder } from './mock.js?v=1795515186'
-import { centerCapsuleInWheel, mountCapsuleWheel } from './capsule-wheel.js?v=1795515186'
+import { ApiError } from './api.js?v=1795515899'
+import { BRANDS } from './brands.js?v=1795515899'
+import { CONFIG } from './config.js?v=1795515899'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795515899'
+import { ensureFreshBuild } from './fresh.js?v=1795515899'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795515899'
+import { createHero, heroGlyph } from './hero.js?v=1795515899'
+import { mixHex } from './hero-math.js?v=1795515899'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795515899'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795515899'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795515899'
+import { readGiftLink } from './gift-link.js?v=1795515899'
+import { hapticError, initTelegram } from './telegram.js?v=1795515899'
+import { setAmount } from './odometer.js?v=1795515899'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795515899'
+import { addTicketsForStars, mountRaffle } from './raffle.js?v=1795515899'
+import { settleDemoOrder } from './mock.js?v=1795515899'
+import { centerCapsuleInWheel, mountCapsuleWheel } from './capsule-wheel.js?v=1795515899'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -730,7 +730,7 @@ const brandCapsule = (service) => {
       'data-service': service.id,
       disabled: !service.isAvailable,
     },
-    [service.brand && logoIcon(service.brand.path, 'product__icon'), el('span', { text: service.label })],
+    [service.brand && logoIcon(service.brand.path, 'product__icon'), el('span', { text: service.brand?.capsule ?? service.label })],
   )
   // свой цвет значка у бренда (PlayStation, App Store) — без высветления, иначе синий выходит блёклым
   if (service.brand) {
