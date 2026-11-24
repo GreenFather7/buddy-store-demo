@@ -1,14 +1,13 @@
 // Окно «Как участвовать» — открывается знаком «?» на плашке розыгрыша после покупки.
 // Обычный короткий текст без списков и значков. Правила — как в боте звёзд.
 
-import { el } from './dom.js?v=1795504410'
+import { el } from './dom.js?v=1795504936'
 import {
   RAFFLE_HOUR_MSK,
   RAFFLE_MIN_TICKETS,
   RAFFLE_STARS_PER_TICKET,
   rafflePrizeLink,
-  rafflePrizeName,
-} from './raffle.js?v=1795504410'
+} from './raffle.js?v=1795504936'
 
 /**
  * Показывает разыгрываемый NFT в стандартном окне подарка Telegram (ссылка t.me/nft/…):
@@ -21,11 +20,11 @@ export const openRafflePrize = () => {
   else window.open(link, '_blank', 'noopener')
 }
 
-const rulesText = () => [
-  `Каждый день в ${RAFFLE_HOUR_MSK}:00 по Москве разыгрываем NFT-подарок ${rafflePrizeName()}.`,
-  `За каждые ${RAFFLE_STARS_PER_TICKET} купленных звёзд — билет, за приглашённого друга — ещё один. ` +
-    `Участвуют от ${RAFFLE_MIN_TICKETS} билетов за день, и чем их больше, тем выше шанс.`,
-  'Подарок придёт победителю в Telegram.',
+/** Три шага — коротко, как инструкция. */
+const STEPS = [
+  `${RAFFLE_STARS_PER_TICKET} звёзд — 1 билет`,
+  'Приглашённый друг — +1 билет',
+  `От ${RAFFLE_MIN_TICKETS} ${RAFFLE_MIN_TICKETS === 1 ? 'билета' : 'билетов'} — вы в розыгрыше`,
 ]
 
 /** Открывает нижнее окно с правилами розыгрыша. */
@@ -44,7 +43,8 @@ export const openRaffleRules = () => {
     el('div', { class: 'test-sheet__backdrop', onClick: close }),
     el('div', { class: 'test-sheet__panel draw-rules__panel' }, [
       el('h2', { class: 'draw-rules__title', id: 'draw-rules-title', text: 'Как участвовать' }),
-      ...rulesText().map((text) => el('p', { class: 'draw-rules__text', text })),
+      el('ol', { class: 'draw-rules__steps' }, STEPS.map((text) => el('li', { text }))),
+      el('p', { class: 'draw-rules__text', text: `Итоги каждый день в ${RAFFLE_HOUR_MSK}:00 МСК. Больше билетов — больше шансов.` }),
       ok,
     ]),
   ])
