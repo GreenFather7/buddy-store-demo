@@ -4,14 +4,19 @@
 // незаметно перескакивает на такую же настоящую. Пока палец крутит строку, каждый новый раздел
 // в центре отзывается лёгким щелчком; когда строка остановилась, выбирается раздел в центре.
 
-import { el } from './dom.js?v=1795515899'
-import { hapticSelection } from './telegram.js?v=1795515899'
+import { el } from './dom.js?v=1795516435'
+import { hapticSelection } from './telegram.js?v=1795516435'
 
 /** Насколько гаснет и уменьшается капсула у самого края строки. */
 const EDGE_OPACITY = 0.35
 const EDGE_SCALE = 0.9
 /** Строка «остановилась», если столько времени нет новых событий прокрутки. */
-const SETTLE_MS = 140
+const SETTLE_MS = 90
+/**
+ * Палец уже отпущен, а раздел задержался в центре столько времени — выбираем его сразу,
+ * не дожидаясь, пока строка докатится по инерции (на iPhone это ещё около секунды).
+ */
+const STABLE_MS = 130
 
 const ORIGINALS = '[data-product]:not([data-clone])'
 
@@ -149,18 +154,43 @@ export const mountCapsuleWheel = (row, onPick, { iconsOnly = false } = {}) => {
     if (original) row.scrollTo({ left: row.scrollLeft + offCenter(row, original) - offCenter(row, capsule), behavior: 'auto' })
   }
 
+  /** Выбирает раздел из центра; true — если выбор сменился (он сам доведёт раздел до центра). */
+  const commit = (capsule) => {
+    isUserTurning = false
+    const original = originalOf(row, capsule)
+    if (!original || original.getAttribute('aria-checked') === 'true') return false
+    onPick(original)
+    return true
+  }
+
+  // раздел задержался в центре после того, как палец отпущен, — выбираем, не ждём конца инерции
+  let isTouching = false
+  let stableTimer = 0
+  let centerSince = performance.now()
+  const commitWhenStable = () => {
+    clearTimeout(stableTimer)
+    const wait = Math.max(0, STABLE_MS - (performance.now() - centerSince))
+    stableTimer = setTimeout(() => {
+      if (isTouching || !isUserTurning) return
+      const capsule = nearest(row, '[data-product]:not(:disabled)')
+      // в центре всё ещё прежний выбранный раздел — ждём, куда докатится строка
+      if (!capsule || originalOf(row, capsule)?.getAttribute('aria-checked') === 'true') return
+      commit(capsule)
+    }, wait)
+  }
+
   const settle = () => {
+    clearTimeout(stableTimer)
     jumpHome()
     const capsule = nearest(row, '[data-product]:not(:disabled)')
     if (!capsule) return
-    if (isUserTurning) {
-      isUserTurning = false
-      const original = originalOf(row, capsule)
-      // выбор сам поставит раздел в центр
-      if (original && original.getAttribute('aria-checked') !== 'true') {
-        onPick(original)
-        return
-      }
+    if (isUserTurning && !isTouching && commit(capsule)) return
+    // строка остановилась не на выбранном разделе (выбор уже сделан, а инерция докатила дальше) —
+    // возвращаем выбранный в центр: в покое по центру всегда то, что выбрано
+    if (!isUserTurning && originalOf(row, capsule)?.getAttribute('aria-checked') !== 'true') {
+      const checked = row.querySelector(`${ORIGINALS}[aria-checked="true"]`)
+      if (checked) centerCapsuleInWheel(row, checked, false)
+      return
     }
     // с линзой браузерная доводка отключена (соседи сдвинуты) — доводим до центра сами
     if (lens && Math.abs(offCenter(row, capsule)) > 1) centerCapsuleInWheel(row, capsule, false)
@@ -172,15 +202,27 @@ export const mountCapsuleWheel = (row, onPick, { iconsOnly = false } = {}) => {
     const key = capsule && keyOf(capsule)
     if (key === centerKey) return
     centerKey = key
+    centerSince = performance.now()
     if (lens && capsule) showInLens(lens, capsule)
-    if (isUserTurning) hapticSelection()
+    if (!isUserTurning) return
+    hapticSelection()
+    commitWhenStable()
   }
 
-  const markUser = () => {
+  row.addEventListener('touchstart', () => {
+    isTouching = true
     isUserTurning = true
+    clearTimeout(stableTimer)
+  }, { passive: true })
+  const release = () => {
+    isTouching = false
+    commitWhenStable()
   }
-  row.addEventListener('touchstart', markUser, { passive: true })
-  row.addEventListener('wheel', markUser, { passive: true })
+  row.addEventListener('touchend', release, { passive: true })
+  row.addEventListener('touchcancel', release, { passive: true })
+  row.addEventListener('wheel', () => {
+    isUserTurning = true
+  }, { passive: true })
   row.addEventListener('scroll', () => {
     repaint()
     tick()
