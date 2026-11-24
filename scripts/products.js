@@ -1,6 +1,6 @@
-import { ApiError, request } from './api.js?v=1795514178'
-import { CONFIG } from './config.js?v=1795514178'
-import { BRANDS } from './brands.js?v=1795514178'
+import { ApiError, request } from './api.js?v=1795514661'
+import { CONFIG } from './config.js?v=1795514661'
+import { BRANDS } from './brands.js?v=1795514661'
 import {
   ORDER_STATE,
   flagUrl,
@@ -14,7 +14,7 @@ import {
   normalizeUsername,
   parseIntInRange,
   trimDecimals,
-} from './lib.js?v=1795514178'
+} from './lib.js?v=1795514661'
 
 const STARS_MIN = 50
 const STARS_MAX = 5000
@@ -296,10 +296,21 @@ const steam = {
 }
 
 /** Сервисы гифт-карт из каталога — по капсуле на каждый в строке разделов. */
+/**
+ * Порядок капсул гифт-карт в строке разделов. Строка крутится по кругу, поэтому последние
+ * стоят сразу слева от «Звёзд» на стартовом экране: там App Store и PlayStation — самые
+ * ходовые. Сервисы, которых нет в списке, встают перед App Store.
+ */
+const CARD_ORDER = ['spotify', 'netflix', 'xbox', 'roblox', 'nintendo', 'gplay', 'app', 'ps']
+const UNKNOWN_CARD_RANK = CARD_ORDER.indexOf('app') - 0.5
+const cardRank = (id) => (CARD_ORDER.includes(id) ? CARD_ORDER.indexOf(id) : UNKNOWN_CARD_RANK)
+
 export const loadCardServices = async () => {
   const { items } = await request('cards', '/api/catalog', { isPublic: true })
   return items
     .filter((item) => item.flow === 'voucher')
+    // filter уже вернул новый массив — sort не трогает ответ сервера (toSorted нет в старых WebView)
+    .sort((a, b) => cardRank(a.voucher_type) - cardRank(b.voucher_type))
     .map((item) => ({
       id: item.voucher_type,
       label: BRANDS[item.voucher_type]?.label ?? item.name,
