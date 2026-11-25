@@ -2223,6 +2223,15 @@ p.raffle-sheet__tickets--in {
   gap: 0.25rem 1.25rem;
 }
 
+/* номер заказа — тихой строкой в самом низу: его называют поддержке */
+.status__order {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
 
 /* узкие телефоны: строка под заголовком («Скопируйте и активируйте в App Store») остаётся
    одной, но не шире экрана — иначе растягивает карточку и кнопки вправо */

@@ -1,11 +1,14 @@
-import { CONFIG } from './config.js?v=1795587922'
-import { mockRequest } from './mock.js?v=1795587922'
+import { CONFIG } from './config.js?v=1795612634'
+import { mockRequest } from './mock.js?v=1795612634'
 
 const SESSION_HEADER = 'x-guest-session'
+const TELEGRAM_HEADER = 'x-telegram-init-data'
 const SESSION_PATH = '/api/web/session'
 const SESSION_KEY_PREFIX = 'buddy.session.'
 const SESSION_REFRESH_MARGIN_MS = 60 * 60 * 1000
 const HTTP_UNAUTHORIZED = 401
+/** Событие для main.js: вход Telegram устарел, покупателю нужно открыть магазин заново. */
+export const RELAUNCH_EVENT = 'buddy:relaunch'
 
 const BASE_URL = { stars: CONFIG.starsApi, cards: CONFIG.cardsApi }
 
@@ -17,10 +20,20 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Подпись Telegram (initData) для этого бэкенда или null — тогда ходим гостем.
+ * Бэкенд проверяет её токеном своего бота, поэтому включается в config.js только для бэкенда того бота,
+ * из которого открыто мини-приложение (telegramAuth).
+ */
+const telegramInitData = (shop) => {
+  const initData = window.Telegram?.WebApp?.initData
+  return CONFIG.telegramAuth[shop] && typeof initData === 'string' && initData ? initData : null
+}
+
 const readSession = (shop) => {
   try {
     const session = JSON.parse(localStorage.getItem(SESSION_KEY_PREFIX + shop) ?? 'null')
-    return session && session.expiresAt - SESSION_REFRESH_MARGIN_MS > Date.now() ? session : null
+    return session && typeof session.token === 'string' && Number.isFinite(session.expiresAt) ? session : null
   } catch {
     return null // хранилище недоступно или повреждено — запросим новую сессию
   }
@@ -35,7 +48,11 @@ const writeSession = (shop, session) => {
   }
 }
 
+const isFresh = (session) => Boolean(session) && session.expiresAt - SESSION_REFRESH_MARGIN_MS > Date.now()
+
 const memorySessions = {}
+/** Запрос сессии, который уже идёт: параллельные запросы ждут его, а не получают каждый свой id. */
+const pendingSessions = {}
 
 const send = async (shop, path, { method = 'GET', query, body, token, headers } = {}) => {
   if (CONFIG.demo) return mockRequest(shop, path, { method, query, body })
@@ -66,37 +83,77 @@ const send = async (shop, path, { method = 'GET', query, body, token, headers } 
   return response.json()
 }
 
-const openSession = async (shop) => {
-  const cached = memorySessions[shop] ?? readSession(shop)
-  if (cached) return cached
-  const { token, expires_in: expiresIn } = await send(shop, SESSION_PATH, { method: 'POST' })
-  const session = { token, expiresAt: Date.now() + expiresIn * 1000 }
-  memorySessions[shop] = session
-  writeSession(shop, session)
-  return session
+/**
+ * Гостевая сессия. Старый токен (даже истёкший) отправляется с запросом новой: бэкенд выдаёт
+ * токен на тот же id, и гость не теряет доступ к своим оплаченным заказам.
+ */
+const openSession = (shop) => {
+  const known = memorySessions[shop] ?? readSession(shop)
+  if (isFresh(known)) return Promise.resolve(known)
+  pendingSessions[shop] ??= send(shop, SESSION_PATH, { method: 'POST', token: known?.token })
+    .then(({ token, expires_in: expiresIn }) => {
+      const session = { token, expiresAt: Date.now() + expiresIn * 1000 }
+      memorySessions[shop] = session
+      writeSession(shop, session)
+      return session
+    })
+    .finally(() => {
+      delete pendingSessions[shop]
+    })
+  return pendingSessions[shop]
 }
 
+/** Сессию отклонили (сменили секрет): забываем и берём новую — старый id уже не вернуть. */
 const dropSession = (shop) => {
   delete memorySessions[shop]
   writeSession(shop, null)
 }
 
+/** Ошибка «вход Telegram устарел»: повторять запросы бессмысленно (status.js по ней прекращает опрос). */
+export class RelaunchError extends ApiError {
+  constructor() {
+    super(HTTP_UNAUTHORIZED, 'telegram session expired')
+    this.name = 'RelaunchError'
+  }
+}
+
+const relaunchNeeded = () => {
+  window.dispatchEvent(new CustomEvent(RELAUNCH_EVENT))
+  return new RelaunchError()
+}
+
 /**
- * Запрос к бэкенду магазина от имени гостя.
+ * Запрос к бэкенду магазина: в Telegram — от имени пользователя Telegram, на сайте — гостем.
  * @param {'stars'|'cards'} shop
  * @param {string} path
  * @param {{method?: string, query?: Record<string, string|number>, body?: object, headers?: Record<string, string>, isPublic?: boolean}} [options]
  */
 export const request = async (shop, path, { isPublic = false, ...options } = {}) => {
   if (isPublic) return send(shop, path, options)
+  const initData = telegramInitData(shop)
+  if (initData) {
+    try {
+      return await send(shop, path, { ...options, headers: { ...options.headers, [TELEGRAM_HEADER]: initData } })
+    } catch (error) {
+      // подпись Telegram устарела — заново её выдаст только новый запуск мини-приложения
+      if (error instanceof ApiError && error.status === HTTP_UNAUTHORIZED) throw relaunchNeeded()
+      throw error
+    }
+  }
   const session = await openSession(shop)
   try {
     return await send(shop, path, { ...options, token: session.token })
   } catch (error) {
     if (!(error instanceof ApiError) || error.status !== HTTP_UNAUTHORIZED) throw error
-    // Сессия протухла или секрет сменили — берём новую и повторяем один раз.
-    dropSession(shop)
-    const fresh = await openSession(shop)
+    // Сессия протухла или секрет сменили — продлеваем (тот же id, если бэкенд узнал токен) и повторяем один раз.
+    if (memorySessions[shop] === session) {
+      delete memorySessions[shop]
+      writeSession(shop, { ...session, expiresAt: 0 })
+    }
+    const fresh = await openSession(shop).catch((sessionError) => {
+      dropSession(shop)
+      throw sessionError
+    })
     return send(shop, path, { ...options, token: fresh.token })
   }
 }

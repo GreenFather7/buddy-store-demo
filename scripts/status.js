@@ -1,16 +1,16 @@
-import { ApiError, request } from './api.js?v=1795587922'
-import { CONFIG } from './config.js?v=1795587922'
-import { BRANDS } from './brands.js?v=1795587922'
-import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795587922'
-import { ORDER_STATE, buildTonLink, flagUrl, trimDecimals } from './lib.js?v=1795587922'
-import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795587922'
-import { createGiftPreview } from './gift-preview.js?v=1795587922'
-import { revealCode, startScramble } from './codefx.js?v=1795587922'
-import { RAFFLE_MIN_TICKETS, raffleCountdown, rafflePrizeImage, rafflePrizeName, ticketsFor, ticketsWord } from './raffle.js?v=1795587922'
-import { openRafflePrize, openRaffleRules } from './raffle-rules.js?v=1795587922'
-import { mixHex } from './hero-math.js?v=1795587922'
-import { giftLink, validGift } from './gift-link.js?v=1795587922'
-import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795587922'
+import { ApiError, RelaunchError, request } from './api.js?v=1795612634'
+import { CONFIG } from './config.js?v=1795612634'
+import { BRANDS } from './brands.js?v=1795612634'
+import { copyText, el, flagImage, isSafeLink, logoIcon, paintBrand, svgEl, textWithIcons } from './dom.js?v=1795612634'
+import { ORDER_STATE, buildTonLink, flagUrl, isTonVerifyDue, pollDelay, trimDecimals } from './lib.js?v=1795612634'
+import { CODE_PRODUCTS, PRODUCTS, checkOrder } from './products.js?v=1795612634'
+import { createGiftPreview } from './gift-preview.js?v=1795612634'
+import { revealCode, startScramble } from './codefx.js?v=1795612634'
+import { RAFFLE_MIN_TICKETS, raffleCountdown, rafflePrizeImage, rafflePrizeName, ticketsFor, ticketsWord } from './raffle.js?v=1795612634'
+import { openRafflePrize, openRaffleRules } from './raffle-rules.js?v=1795612634'
+import { mixHex } from './hero-math.js?v=1795612634'
+import { giftLink, validGift } from './gift-link.js?v=1795612634'
+import { canShareInTelegram, imageToBase64, logoColor, renderGiftImage, shareGift, shareInTelegram } from './gift-share.js?v=1795612634'
 
 const ORDER_KEY = 'buddy.order'
 const PENDING_LIFETIME_MS = 30 * 60 * 1000
@@ -18,7 +18,7 @@ const COPIED_FEEDBACK_MS = 1500
 const HTTP_NOT_FOUND = 404
 const SUPPORT_URL = 'https://t.me/Buddy_support_bot'
 
-const FINAL_STATES = [ORDER_STATE.DONE, ORDER_STATE.FAILED]
+const FINAL_STATES = [ORDER_STATE.DONE, ORDER_STATE.FAILED, ORDER_STATE.REFUNDED, ORDER_STATE.NOT_FOUND]
 
 // ── Хранение текущего заказа: переживает уход на страницу оплаты ──
 const isValidOrder = (order) =>
@@ -36,6 +36,21 @@ export const loadOrder = () => {
   } catch {
     return null
   }
+}
+
+const ORDER_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
+const RETURN_PRODUCT = { stars: 'stars', cards: 'cards' }
+
+/**
+ * Заказ из адреса возврата платёжки (?shop=…&order=…), когда в этом браузере его нет:
+ * покупателя вернули в другой браузер или данные сайта очищены. Состав заказа неизвестен —
+ * экран покажет только статус и номер.
+ */
+export const orderFromReturn = (params) => {
+  const shop = params.get('shop')
+  const orderId = params.get('order')
+  if (!Object.hasOwn(RETURN_PRODUCT, shop ?? '') || !ORDER_ID_PATTERN.test(orderId ?? '')) return null
+  return { kind: 'redirect', productId: RETURN_PRODUCT[shop], ref: { shop, orderId }, createdAt: Date.now(), isReturned: true }
 }
 
 export const saveOrder = (order) => {
@@ -120,7 +135,7 @@ const cardHeading = (stage, brand) => {
  * @param {'issuing'|'delayed'} [waiting] почему кода ещё нет
  * @param {{ isReceived?: boolean }} [options] карту открыл получатель подарка — без «Поделиться»
  */
-const codeCard = (order, codes, waiting = 'issuing', { isReceived = false } = {}) => {
+const codeCard = (order, codes, waiting = 'issuing', { isReceived = false, signed = null } = {}) => {
   const brandId = String(order.summary?.brand ?? '')
   if (!Object.hasOwn(BRANDS, brandId)) return null
   const brand = BRANDS[brandId]
@@ -221,7 +236,7 @@ const codeCard = (order, codes, waiting = 'issuing', { isReceived = false } = {}
     button.style.setProperty('--brand-from', brand.from)
     button.style.setProperty('--brand-to', brand.to)
   })
-  const share = !isReceived && shareButton(order, codes)
+  const share = !isReceived && shareButton(order, codes, signed)
   return [...cardHeading(isReceived ? 'received' : 'ready', brand), paintBrand(card, brand), activate, copyAll, share].filter(
     Boolean,
   )
@@ -235,9 +250,10 @@ const SHARE_RESULT = { copied: 'Ссылка скопирована', failed: '�
  * «Поделиться» картой: картинка карты и ссылка, по которой получатель скопирует код.
  * Картинка рисуется сразу, пока покупатель смотрит на код, — к нажатию она уже готова.
  */
-const shareButton = (order, codes) => {
+const shareButton = (order, codes, signed) => {
   const gift = validGift({ ...order.summary, codes })
-  if (!gift) return null
+  // боевой сайт открывает только подписанные бэкендом ссылки — без подписи делиться ссылкой нечем
+  if (!gift || (!CONFIG.demo && !signed)) return null
   let image = null
   let imageBase64 = null
   // В Telegram сообщение готовит бот по заказу из базы — в тестовом режиме заказов там нет.
@@ -260,7 +276,7 @@ const shareButton = (order, codes) => {
         button.disabled = false
         if (isShared) return
       }
-      const result = await shareGift(gift, giftLink(gift, window.location.href), image)
+      const result = await shareGift(gift, giftLink(gift, window.location.href, signed), image)
       if (!SHARE_RESULT[result]) return
       button.textContent = SHARE_RESULT[result]
       setTimeout(() => {
@@ -429,7 +445,7 @@ const VIEW = {
     el('p', { class: 'status__text', text: isInTelegram() ? 'Пришлём в чат бота, как будет готово' : 'Оплата прошла, ждём выдачу' }),
   ],
   [ORDER_STATE.DONE]: (order, result) =>
-    ((result.codes ?? []).length > 0 && codeCard(order, result.codes)) || [
+    ((result.codes ?? []).length > 0 && codeCard(order, result.codes, 'issuing', { signed: result.gift })) || [
       successMark(order),
       statusTitle(PRODUCTS[order.productId].doneText),
       order.summary?.line && el('p', { class: 'status__text' }, textWithIcons(order.summary.line)),
@@ -449,9 +465,33 @@ const VIEW = {
           failMark(),
           el('p', { class: 'status__title', text: 'Заказ не выполнен' }),
           el('p', { class: 'status__text', text: 'Если деньги списались — напишите нам' }),
-          el('a', { class: 'btn btn--ghost', href: SUPPORT_URL, target: '_blank', rel: 'noopener', text: 'Поддержка' }),
+          supportButton(),
         ],
+  // Оплачен, но выдачу держит проверка. В Telegram бот просит подтвердить номер; гостю ждать решения.
+  [ORDER_STATE.REVIEW]: () => [
+    el('div', { class: 'status__spinner' }),
+    el('p', { class: 'status__title', text: 'Проверяем оплату' }),
+    el('p', { class: 'status__text', text: isInTelegram() ? 'Подтвердите номер в чате бота' : 'Это может занять до 12 часов' }),
+  ],
+  [ORDER_STATE.REFUNDED]: () => [
+    failMark(),
+    el('p', { class: 'status__title', text: 'Деньги возвращены' }),
+    el('p', { class: 'status__text', text: 'Вернутся тем же способом' }),
+    supportButton(),
+  ],
+  [ORDER_STATE.NOT_FOUND]: () => [
+    failMark(),
+    el('p', { class: 'status__title', text: 'Заказ не найден' }),
+    el('p', { class: 'status__text', text: 'Напишите нам номер заказа — проверим' }),
+    supportButton(),
+  ],
 }
+
+const supportButton = () => el('a', { class: 'btn btn--ghost', href: SUPPORT_URL, target: '_blank', rel: 'noopener', text: 'Поддержка' })
+
+/** Номер заказа тихой строкой внизу: его называют поддержке. На экране успеха не нужен. */
+const orderNumber = (order, state) =>
+  state === ORDER_STATE.DONE ? null : el('p', { class: 'status__order', text: `Заказ ${order.ref.orderId}` })
 
 /**
  * Показывает статус заказа и опрашивает бэкенд, пока заказ не завершится.
@@ -565,10 +605,19 @@ export const showStatus = (container, order, onClose) => {
   let timer = 0
   let isClosed = false
   let lastKey = ''
+  const startedAt = Date.now()
+  let lastTonCheckAt = null
+  let isPolling = false
+  let isStopped = false
+
+  const onVisible = () => {
+    if (!document.hidden && !isClosed && !timer && !isPolling && !isStopped) poll()
+  }
 
   const close = () => {
     isClosed = true
     clearTimeout(timer)
+    document.removeEventListener('visibilitychange', onVisible)
     clearOrder()
     container.hidden = true
     container.replaceChildren()
@@ -594,25 +643,48 @@ export const showStatus = (container, order, onClose) => {
       el('button', {
         class: 'status__link',
         type: 'button',
-        text: isFinal ? 'Новая покупка' : 'Отменить и вернуться',
+        // на проверке заказ уже оплачен — отменить его отсюда нельзя
+        text: isFinal || result.state === ORDER_STATE.REVIEW ? 'Новая покупка' : 'Отменить и вернуться',
         onClick: close,
       }),
     ].filter(Boolean))
-    container.replaceChildren(...[...items, raffleBlock, links].filter(Boolean))
+    container.replaceChildren(...[...items, raffleBlock, links, orderNumber(order, result.state)].filter(Boolean))
     riseIn(container)
     swapHeading(previousHeading, headingOf(container))
   }
 
+  // Опрос: часто в первую минуту, дальше реже (pollDelay); на скрытой вкладке — пауза до возвращения;
+  // через несколько часов — стоп (откроют страницу заново — опрос начнётся снова).
+  const schedule = () => {
+    const delay = pollDelay(Date.now() - startedAt, CONFIG.statusPoll)
+    if (delay === null) isStopped = true
+    else timer = setTimeout(poll, delay)
+  }
+
   const poll = async () => {
+    timer = 0
     if (isClosed) return
+    if (document.hidden) return // продолжит onVisible
+    const elapsed = Date.now() - startedAt
+    // перевод TON проверяется реже: каждая проверка — запрос сервера в tonapi
+    const verifyTon = isTonVerifyDue(elapsed, lastTonCheckAt, CONFIG.tonVerify)
+    if (verifyTon && order.ref.memo) lastTonCheckAt = elapsed
     let result
+    isPolling = true
     try {
-      result = await checkOrder(order.ref)
+      result = await checkOrder(order.ref, { verifyTon })
     } catch (error) {
-      // Заказ не найден (например, очищены данные сайта) — показывать нечего.
+      // вход Telegram устарел — экран «Откройте заново» уже показан, опрос больше ничего не даст
+      if (error instanceof RelaunchError) {
+        isStopped = true
+        return
+      }
+      // Заказа нет у этого покупателя: другой браузер или очищены данные сайта. Это не «не выполнен» —
+      // деньги могли пройти, поэтому показываем номер и путь в поддержку.
       const isMissing = error instanceof ApiError && error.status === HTTP_NOT_FOUND
-      result = { state: isMissing ? ORDER_STATE.FAILED : ORDER_STATE.PENDING }
-      if (!isMissing && lastKey) result = null // временный сбой сети: оставляем прежний экран
+      result = isMissing ? { state: ORDER_STATE.NOT_FOUND } : lastKey ? null : { state: ORDER_STATE.PENDING }
+    } finally {
+      isPolling = false
     }
     if (isClosed) return
     if (result) {
@@ -621,9 +693,12 @@ export const showStatus = (container, order, onClose) => {
       render(result)
       // Готовый заказ остаётся в хранилище до «Новая покупка»: код гифт-карты
       // должен пережить обновление страницы — другой копии у гостя нет.
-      if (FINAL_STATES.includes(result.state)) return
+      if (FINAL_STATES.includes(result.state)) {
+        isStopped = true
+        return
+      }
     }
-    timer = setTimeout(poll, CONFIG.statusPollMs)
+    schedule()
   }
 
   container.hidden = false
@@ -632,6 +707,7 @@ export const showStatus = (container, order, onClose) => {
     declined: { state: ORDER_STATE.FAILED, reason: 'declined' },
   }
   render(order.testOutcome ? (TEST_START[order.testOutcome] ?? { state: ORDER_STATE.PAID }) : { state: ORDER_STATE.PENDING })
+  document.addEventListener('visibilitychange', onVisible)
   poll()
 }
 
@@ -656,6 +732,22 @@ export const showGift = (container, gift, onClose) => {
         onClose()
       },
     }),
+  )
+  container.hidden = false
+}
+
+/**
+ * Подпись Telegram устарела (бэкенд ответил 401 на initData): обновить её может только новый запуск
+ * мини-приложения. Гостем молча не продолжаем — у гостя другие цены, нет билетов и сообщений бота.
+ * @param {HTMLElement} container
+ */
+export const showRelaunch = (container) => {
+  const telegram = window.Telegram?.WebApp
+  container.replaceChildren(
+    failMark(),
+    el('p', { class: 'status__title', text: 'Откройте заново' }),
+    el('p', { class: 'status__text', text: 'Сессия Telegram устарела' }),
+    telegram?.close && el('button', { class: 'btn btn--gold', type: 'button', text: 'Закрыть', onClick: () => telegram.close() }),
   )
   container.hidden = false
 }

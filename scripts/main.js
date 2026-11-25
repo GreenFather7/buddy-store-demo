@@ -1,22 +1,22 @@
-import { ApiError } from './api.js?v=1795587922'
-import { BRANDS } from './brands.js?v=1795587922'
-import { CONFIG } from './config.js?v=1795587922'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795587922'
-import { ensureFreshBuild } from './fresh.js?v=1795587922'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795587922'
-import { createHero, heroGlyph } from './hero.js?v=1795587922'
-import { mixHex } from './hero-math.js?v=1795587922'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795587922'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795587922'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795587922'
-import { readGiftLink } from './gift-link.js?v=1795587922'
-import { hapticError, initTelegram } from './telegram.js?v=1795587922'
-import { setAmount } from './odometer.js?v=1795587922'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795587922'
-import { addTicketsForStars, mountRaffle } from './raffle.js?v=1795587922'
-import { settleDemoOrder } from './mock.js?v=1795587922'
-import { centerCapsuleInWheel, mountCapsuleWheel } from './capsule-wheel.js?v=1795587922'
-import { mountOrbit } from './orbit.js?v=1795587922'
+import { ApiError, RELAUNCH_EVENT } from './api.js?v=1795612634'
+import { BRANDS } from './brands.js?v=1795612634'
+import { CONFIG } from './config.js?v=1795612634'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795612634'
+import { ensureFreshBuild } from './fresh.js?v=1795612634'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795612634'
+import { createHero, heroGlyph } from './hero.js?v=1795612634'
+import { mixHex } from './hero-math.js?v=1795612634'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795612634'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795612634'
+import { loadOrder, orderFromReturn, saveOrder, showGift, showRelaunch, showStatus } from './status.js?v=1795612634'
+import { parseGiftLink, verifyGiftLink } from './gift-link.js?v=1795612634'
+import { hapticError, initTelegram } from './telegram.js?v=1795612634'
+import { setAmount } from './odometer.js?v=1795612634'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795612634'
+import { addTicketsForStars, mountRaffle } from './raffle.js?v=1795612634'
+import { settleDemoOrder } from './mock.js?v=1795612634'
+import { centerCapsuleInWheel, mountCapsuleWheel } from './capsule-wheel.js?v=1795612634'
+import { mountOrbit } from './orbit.js?v=1795612634'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -868,8 +868,16 @@ const init = () => {
   }
   keepFormInPlace()
 
+  // Вход Telegram устарел — экран «откройте заново» вместо формы (один раз).
+  window.addEventListener(RELAUNCH_EVENT, () => {
+    setFormVisible(false)
+    showRelaunch(statusEl)
+  }, { once: true })
+
   // Платёжка возвращает с ?shop=…&order=… — сам заказ лежит в хранилище, адрес чистим.
+  // Если в этом браузере заказа нет (другой браузер, очищены данные) — берём номер из адреса.
   const params = new URLSearchParams(window.location.search)
+  const returnedOrder = orderFromReturn(params)
   if (params.has('order')) {
     params.delete('order')
     params.delete('shop')
@@ -880,18 +888,35 @@ const init = () => {
   selectProduct(DEFAULT_PRODUCT)
   addCardCapsules()
   // Открыли ссылку на подаренную карту — показываем её, а не магазин и не свой заказ.
-  const gift = readGiftLink(window.location.hash)
-  if (gift) {
-    openGift(gift)
+  if (parseGiftLink(window.location.hash)) {
+    openGiftLink()
     return
   }
-  const pendingOrder = loadOrder()
+  const storedOrder = loadOrder()
+  // сохранённый заказ — тот же, что в адресе возврата (или адреса нет): у него полный состав
+  const isSameOrder = !returnedOrder || String(storedOrder?.ref.orderId) === returnedOrder.ref.orderId
+  const pendingOrder = storedOrder && isSameOrder ? storedOrder : returnedOrder
+  // заказ из адреса сохраняем: переживёт перезагрузку, как обычный
+  if (pendingOrder && pendingOrder === returnedOrder) saveOrder(returnedOrder)
   if (pendingOrder) {
     openStatus(pendingOrder)
     return
   }
   // ?orbit=1 — эксперимент: выбор сервиса на орбитах вокруг аватара (scripts/orbit.js)
   if (params.has('orbit')) mountOrbit({ productsEl, checkoutEl: root, onPick: selectProduct })
+}
+
+/** Ссылка на подарок: открываем только с верной подписью бэкенда (в демо — и без неё). */
+const openGiftLink = async () => {
+  setFormVisible(false)
+  const gift = await verifyGiftLink(window.location.hash, { publicKey: CONFIG.giftPublicKey, requireSigned: !CONFIG.demo })
+  if (gift) {
+    openGift(gift)
+    return
+  }
+  // подделка или испорченная ссылка — карту не показываем, открываем магазин
+  window.history.replaceState(null, '', window.location.pathname + window.location.search)
+  setFormVisible(true)
 }
 
 const openGift = (gift) => {

@@ -4,8 +4,8 @@
 // с инерцией и щелчками вибрации. Нажатие на сервис — он улетает в аватар, остальные
 // разлетаются, а аватар переезжает в шапку формы. Обычный магазин без параметра не меняется.
 
-import { el } from './dom.js?v=1795587922'
-import { hapticSelection } from './telegram.js?v=1795587922'
+import { el } from './dom.js?v=1795612634'
+import { hapticSelection } from './telegram.js?v=1795612634'
 
 const ORIGINALS = '[data-product]:not([data-clone])'
 /**

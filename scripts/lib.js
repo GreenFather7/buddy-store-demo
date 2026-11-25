@@ -18,6 +18,12 @@ export const ORDER_STATE = Object.freeze({
   DELAYED: 'delayed',
   DONE: 'done',
   FAILED: 'failed',
+  // оплачен, выдача удержана проверкой (антифрод) до решения
+  REVIEW: 'review',
+  // деньги возвращены покупателю
+  REFUNDED: 'refunded',
+  // заказа нет у этого покупателя: другой браузер, очищены данные сайта
+  NOT_FOUND: 'not_found',
 })
 
 /** Username без @ и пробелов. */
@@ -76,17 +82,27 @@ export const tonToNano = (amountTon) => {
 export const buildTonLink = ({ address, amountTon, memo }) =>
   `ton://transfer/${encodeURIComponent(address)}?amount=${tonToNano(amountTon)}&text=${encodeURIComponent(memo)}`
 
-/** Статус Stars-бэкенда (/api/check_payment) → состояние заказа на сайте. */
+/**
+ * Статус Stars-бэкенда (/api/check_payment) → состояние заказа на сайте.
+ * review, refunded, failed бэкенд объединённого бота должен начать отдавать (см. backend/README.md);
+ * пока их присылает только тестовый режим.
+ */
 export const mapStarsStatus = (status) => {
   if (status === 'stars_sent') return ORDER_STATE.DONE
-  // боевой бэкенд звёзд таких статусов пока не отдаёт — их присылает тестовый режим
+  if (status === 'review') return ORDER_STATE.REVIEW
+  if (status === 'refunded') return ORDER_STATE.REFUNDED
   if (status === 'failed' || status === 'declined') return ORDER_STATE.FAILED
   if (status === 'paid') return ORDER_STATE.PAID
   return ORDER_STATE.PENDING
 }
 
-/** Статус бэкенда гифт-карт (/api/check_order) → состояние заказа на сайте. */
-export const mapCardsStatus = (status) => {
+/**
+ * Статус бэкенда гифт-карт (/api/check_order) → состояние заказа на сайте.
+ * stage уточняет то, чего нет в status: review — на проверке, refunded — деньги вернули (status при этом Declined).
+ */
+export const mapCardsStatus = (status, stage) => {
+  if (stage === 'refunded') return ORDER_STATE.REFUNDED
+  if (stage === 'review') return ORDER_STATE.REVIEW
   switch (status) {
     case 'Success':
       return ORDER_STATE.DONE
@@ -103,6 +119,26 @@ export const mapCardsStatus = (status) => {
       return ORDER_STATE.PENDING
   }
 }
+
+/**
+ * Через сколько мс спросить статус снова, или null — пора перестать (страница спросит заново при открытии).
+ * @param {number} elapsedMs сколько экран статуса уже открыт
+ * @param {{fastMs: number, slowMs: number, idleMs: number, fastForMs: number, slowForMs: number, stopAfterMs: number}} plan
+ */
+export const pollDelay = (elapsedMs, plan) => {
+  if (elapsedMs >= plan.stopAfterMs) return null
+  if (elapsedMs < plan.fastForMs) return plan.fastMs
+  if (elapsedMs < plan.slowForMs) return plan.slowMs
+  return plan.idleMs
+}
+
+/**
+ * Пора ли проверять перевод TON (каждая проверка — запрос бэкенда в tonapi).
+ * @param {number} elapsedMs сколько открыт экран оплаты
+ * @param {number|null} lastAtMs когда проверяли в прошлый раз (от открытия экрана)
+ */
+export const isTonVerifyDue = (elapsedMs, lastAtMs, { firstAfterMs, everyMs }) =>
+  elapsedMs >= firstAfterMs && (lastAtMs === null || elapsedMs - lastAtMs >= everyMs)
 
 const DECLINED_STATUSES = ['Declined', 'Expired', 'declined']
 const FAILED_STATUSES = ['Fail', 'failed']

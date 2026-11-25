@@ -2,8 +2,8 @@
 // В окне выбирается, чем закончится заказ, — так проверяются все экраны после оплаты.
 // В боевом режиме модуль не используется.
 
-import { el, textWithIcons } from './dom.js?v=1795587922'
-import { formatRub } from './lib.js?v=1795587922'
+import { el, textWithIcons } from './dom.js?v=1795612634'
+import { formatRub } from './lib.js?v=1795612634'
 
 const BALANCE_KEY = 'buddy.test.balance'
 const START_BALANCE = 100000
@@ -14,6 +14,8 @@ const OUTCOMES = [
   { id: 'declined', title: 'Платёж не прошёл', note: 'деньги не спишутся', isPaid: false },
   { id: 'failed', title: 'Ошибка выдачи', note: 'оплачено, но заказ не выполнен', isPaid: true },
   { id: 'delayed', title: 'Выдача задерживается', note: 'оплачено, ждём поставщика', isPaid: true },
+  { id: 'review', title: 'На проверке', note: 'оплачено, антифрод держит выдачу', isPaid: true },
+  { id: 'refunded', title: 'Возврат', note: 'оплачено, деньги вернули', isPaid: false },
 ]
 
 let memoryBalance = START_BALANCE

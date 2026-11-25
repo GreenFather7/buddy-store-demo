@@ -1,6 +1,6 @@
-import { ApiError, request } from './api.js?v=1795587922'
-import { CONFIG } from './config.js?v=1795587922'
-import { BRANDS } from './brands.js?v=1795587922'
+import { ApiError, request } from './api.js?v=1795612634'
+import { CONFIG } from './config.js?v=1795612634'
+import { BRANDS } from './brands.js?v=1795612634'
 import {
   ORDER_STATE,
   flagUrl,
@@ -14,7 +14,7 @@ import {
   normalizeUsername,
   parseIntInRange,
   trimDecimals,
-} from './lib.js?v=1795587922'
+} from './lib.js?v=1795612634'
 
 const STARS_MIN = 50
 const STARS_MAX = 5000
@@ -80,8 +80,13 @@ const starsCheckout = ({ invoicePath, intentPath, body }) => ({
   },
 })
 
-export const checkStarsOrder = async ({ orderId, memo }) => {
+/**
+ * @param {{ orderId: string|number, memo?: string }} ref
+ * @param {{ verifyTon?: boolean }} [options] verifyTon — пора спросить сервер о переводе TON (он ходит в tonapi)
+ */
+export const checkStarsOrder = async ({ orderId, memo }, { verifyTon = true } = {}) => {
   if (memo) {
+    if (!verifyTon) return null // рано или недавно проверяли — экран остаётся как есть
     // TON: сначала сервер должен увидеть перевод с нашим комментарием.
     const { status } = await request('stars', '/api/ton_verify', { method: 'POST', body: { memo } })
     if (status === 'pending') return { state: ORDER_STATE.PENDING }
@@ -93,10 +98,11 @@ export const checkStarsOrder = async ({ orderId, memo }) => {
 export const checkCardsOrder = async ({ orderId }) => {
   const order = await request('cards', '/api/check_order', { query: { order_id: orderId } })
   const codes = order.codes ?? []
-  const state = mapCardsStatus(order.status)
+  const state = mapCardsStatus(order.status, order.stage)
   // «Готово» без кода у ваучера значит, что код ещё не записан: ждём, а не показываем пустоту.
   const isCodeMissing = state === ORDER_STATE.DONE && order.product_type !== 'steam' && codes.length === 0
-  return { state: isCodeMissing ? ORDER_STATE.DELAYED : state, codes, reason: failureReason(order.status) }
+  // gift — подписанные бэкендом данные карты для ссылки «Подарить эту карту»
+  return { state: isCodeMissing ? ORDER_STATE.DELAYED : state, codes, reason: failureReason(order.status), gift: order.gift ?? null }
 }
 
 const stars = {
@@ -508,7 +514,8 @@ export const PRODUCTS = Object.freeze({ stars, premium, gram, gifts, steam, card
 /** Разделы, где после оплаты выдаётся код карты (экран с картой и кодом). */
 export const CODE_PRODUCTS = ['cards', 'gta']
 
-export const checkOrder = (ref) => (ref.shop === 'cards' ? checkCardsOrder(ref) : checkStarsOrder(ref))
+/** Статус заказа; null — в этот раз не спрашивали (TON: ещё рано проверять перевод). */
+export const checkOrder = (ref, options) => (ref.shop === 'cards' ? checkCardsOrder(ref) : checkStarsOrder(ref, options))
 
 /** Значение поля в том виде, в котором его ждёт бэкенд. */
 export const normalizeValue = (field, raw) => {

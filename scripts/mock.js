@@ -2,7 +2,7 @@
 // Исход заказа выбирают в окне тестовой оплаты (settleDemoOrder): успех, отказ платежа,
 // ошибка выдачи или задержка. В боевом режиме не используется.
 
-import { ApiError } from './api.js?v=1795587922'
+import { ApiError } from './api.js?v=1795612634'
 
 /** Сколько заказ «отправляется» после оплаты, прежде чем показать итог. */
 const DELIVERY_MS = 1800
@@ -47,7 +47,7 @@ const phase = (orderId) => {
   const order = orders.get(String(orderId))
   if (!order?.outcome) return 'pending'
   if (order.outcome === 'declined') return 'declined'
-  if (order.outcome === 'delayed') return 'delayed'
+  if (order.outcome === 'delayed' || order.outcome === 'review') return order.outcome
   return Date.now() - order.settledAt < DELIVERY_MS ? 'paid' : order.outcome
 }
 
@@ -154,7 +154,9 @@ const ROUTES = {
     return { status: phase(orderId) === 'pending' ? 'pending' : 'completed' }
   },
   'stars GET /api/check_payment': ({ query }) => {
-    const STARS_STATUS = { pending: 'pending', paid: 'paid', delayed: 'paid', success: 'stars_sent' }
+    // заказ другого браузера (или страница перезагружена) — как боевой бэкенд, 404
+    if (!orders.has(String(query.order_id))) throw new ApiError(HTTP_NOT_FOUND, 'Order not found')
+    const STARS_STATUS = { pending: 'pending', paid: 'paid', delayed: 'paid', success: 'stars_sent', review: 'review', refunded: 'refunded' }
     return { status: STARS_STATUS[phase(query.order_id)] ?? phase(query.order_id) }
   },
 
@@ -199,11 +201,14 @@ const ROUTES = {
   'cards POST /api/vouchers/create_order': () => cardsOrder(true),
   'cards GET /api/check_order': ({ query }) => {
     const order = orders.get(query.order_id)
-    const CARDS_STATUS = { pending: 'Pending', paid: 'Paid', delayed: 'Stuck', success: 'Success', declined: 'Declined', failed: 'Fail' }
+    if (!order) throw new ApiError(HTTP_NOT_FOUND, 'Order not found')
+    const CARDS_STATUS = { pending: 'Pending', paid: 'Paid', delayed: 'Stuck', success: 'Success', declined: 'Declined', failed: 'Fail', review: 'Paid', refunded: 'Declined' }
+    const CARDS_STAGE = { review: 'review', refunded: 'refunded' }
     const status = CARDS_STATUS[phase(query.order_id)]
     const hasCode = order?.hasCode !== false
     return {
       status,
+      stage: CARDS_STAGE[phase(query.order_id)] ?? null,
       product_type: hasCode ? 'playstation' : 'steam',
       codes: status === 'Success' && hasCode ? ['DEMO-7K2P-9QXA-44MT'] : [],
     }
