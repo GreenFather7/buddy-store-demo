@@ -1,14 +1,14 @@
 // Окно «Как участвовать» — открывается знаком «?» на плашке розыгрыша после покупки.
 // Обычный короткий текст без списков и значков. Правила — как в боте звёзд.
 
-import { el } from './dom.js?v=1795516435'
-import { CONFIG } from './config.js?v=1795516435'
+import { el } from './dom.js?v=1795587922'
+import { CONFIG } from './config.js?v=1795587922'
 import {
   RAFFLE_HOUR_MSK,
   RAFFLE_MIN_TICKETS,
   RAFFLE_STARS_PER_TICKET,
   rafflePrizeLink,
-} from './raffle.js?v=1795516435'
+} from './raffle.js?v=1795587922'
 
 /**
  * Показывает разыгрываемый NFT в стандартном окне подарка Telegram (ссылка t.me/nft/…):

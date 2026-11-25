@@ -1,21 +1,22 @@
-import { ApiError } from './api.js?v=1795516435'
-import { BRANDS } from './brands.js?v=1795516435'
-import { CONFIG } from './config.js?v=1795516435'
-import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795516435'
-import { ensureFreshBuild } from './fresh.js?v=1795516435'
-import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795516435'
-import { createHero, heroGlyph } from './hero.js?v=1795516435'
-import { mixHex } from './hero-math.js?v=1795516435'
-import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795516435'
-import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795516435'
-import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795516435'
-import { readGiftLink } from './gift-link.js?v=1795516435'
-import { hapticError, initTelegram } from './telegram.js?v=1795516435'
-import { setAmount } from './odometer.js?v=1795516435'
-import { askTestPayment, mountBalance } from './testpay.js?v=1795516435'
-import { addTicketsForStars, mountRaffle } from './raffle.js?v=1795516435'
-import { settleDemoOrder } from './mock.js?v=1795516435'
-import { centerCapsuleInWheel, mountCapsuleWheel } from './capsule-wheel.js?v=1795516435'
+import { ApiError } from './api.js?v=1795587922'
+import { BRANDS } from './brands.js?v=1795587922'
+import { CONFIG } from './config.js?v=1795587922'
+import { el, flagImage, isSafeLink, logoIcon } from './dom.js?v=1795587922'
+import { ensureFreshBuild } from './fresh.js?v=1795587922'
+import { createGiftPreview, preloadAnimations, preloadGifts } from './gift-preview.js?v=1795587922'
+import { createHero, heroGlyph } from './hero.js?v=1795587922'
+import { mixHex } from './hero-math.js?v=1795587922'
+import { avatarUrl, describeError, groupThousands } from './lib.js?v=1795587922'
+import { PRODUCTS, loadCardServices, normalizeValue } from './products.js?v=1795587922'
+import { loadOrder, saveOrder, showGift, showStatus } from './status.js?v=1795587922'
+import { readGiftLink } from './gift-link.js?v=1795587922'
+import { hapticError, initTelegram } from './telegram.js?v=1795587922'
+import { setAmount } from './odometer.js?v=1795587922'
+import { askTestPayment, mountBalance } from './testpay.js?v=1795587922'
+import { addTicketsForStars, mountRaffle } from './raffle.js?v=1795587922'
+import { settleDemoOrder } from './mock.js?v=1795587922'
+import { centerCapsuleInWheel, mountCapsuleWheel } from './capsule-wheel.js?v=1795587922'
+import { mountOrbit } from './orbit.js?v=1795587922'
 
 const QUOTE_DEBOUNCE_MS = 400
 const AVATAR_DEBOUNCE_MS = 500
@@ -885,7 +886,12 @@ const init = () => {
     return
   }
   const pendingOrder = loadOrder()
-  if (pendingOrder) openStatus(pendingOrder)
+  if (pendingOrder) {
+    openStatus(pendingOrder)
+    return
+  }
+  // ?orbit=1 — эксперимент: выбор сервиса на орбитах вокруг аватара (scripts/orbit.js)
+  if (params.has('orbit')) mountOrbit({ productsEl, checkoutEl: root, onPick: selectProduct })
 }
 
 const openGift = (gift) => {

@@ -2280,3 +2280,245 @@ p.raffle-sheet__tickets--in {
 .products .product:disabled {
   scroll-snap-align: none;
 }
+
+/* ── Эксперимент «Орбита» (?orbit=1, scripts/orbit.js). Без параметра ничего из этого не действует. ── */
+.orbit-mode .store__title,
+.orbit-mode .products,
+.orbit-mode .wheel-lens {
+  display: none !important;
+}
+
+.orbit-open,
+.orbit-open body {
+  overflow: hidden;
+}
+
+.orbit {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  justify-items: center;
+  padding:
+    calc(1.25rem + var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px))
+    var(--space-gutter)
+    calc(1.5rem + var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.orbit[hidden] {
+  display: none;
+}
+
+.orbit__backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background:
+    radial-gradient(60% 40% at 50% 52%, rgb(123 97 255 / 0.16), transparent 70%),
+    radial-gradient(40% 30% at 20% 80%, rgb(255 71 126 / 0.1), transparent 70%),
+    radial-gradient(45% 30% at 85% 18%, rgb(0 152 234 / 0.12), transparent 70%),
+    var(--color-bg);
+}
+
+.orbit__sky {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--sky-size, 100vmax);
+  height: var(--sky-size, 100vmax);
+  translate: -50% -50%;
+  animation: orbit-sky 240s linear infinite;
+}
+
+@keyframes orbit-sky {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.orbit__title {
+  margin-top: clamp(0.5rem, 3vh, 2rem);
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 1.1rem + 2vw, 2.25rem);
+  text-align: center;
+}
+
+.orbit__hint {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+.orbit__stage {
+  position: relative;
+  width: 100%;
+  max-width: 30rem;
+  height: 100%;
+  min-height: 18rem;
+  cursor: grab;
+}
+
+.orbit__ring {
+  position: absolute;
+  top: calc(50% - var(--ry, 50px));
+  left: calc(50% - var(--rx, 100px));
+  width: calc(var(--rx, 100px) * 2);
+  height: calc(var(--ry, 50px) * 2);
+  border-radius: 50%;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  box-shadow:
+    0 0 30px -6px rgb(123 97 255 / 0.35),
+    inset 0 0 30px -10px rgb(255 178 36 / 0.25);
+  rotate: var(--turn, 0deg);
+  pointer-events: none;
+}
+
+.orbit__core {
+  position: absolute;
+  top: calc(50% - var(--core-size, 104px) / 2);
+  left: calc(50% - var(--core-size, 104px) / 2);
+  z-index: 2;
+  width: var(--core-size, 104px);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #0c0c0e;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.12),
+    0 0 50px -2px rgb(255 178 36 / 0.55),
+    0 0 120px 10px rgb(123 97 255 / 0.25);
+  pointer-events: none;
+}
+
+.orbit__photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.orbit__planet {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  justify-items: center;
+  gap: 0.3rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--planet-color, var(--color-gold));
+  cursor: pointer;
+  will-change: transform, opacity;
+}
+
+.orbit__body {
+  display: grid;
+  place-items: center;
+  width: clamp(3rem, 2.4rem + 3vw, 3.75rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #232327, #0a0a0c 70%);
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.1),
+    0 0 22px -6px var(--planet-color, var(--color-gold)),
+    0 8px 20px -8px rgb(0 0 0 / 0.8);
+  transition: box-shadow var(--duration-normal);
+}
+
+.orbit__planet:focus-visible .orbit__body,
+.orbit__planet:hover .orbit__body {
+  box-shadow:
+    0 0 0 2px var(--planet-color, var(--color-gold)),
+    0 0 30px -2px var(--planet-color, var(--color-gold));
+}
+
+.orbit__planet:focus-visible {
+  outline: none;
+}
+
+.orbit__icon {
+  width: 55%;
+  height: 55%;
+}
+
+.orbit__label {
+  color: var(--color-text-soft);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: opacity var(--duration-normal);
+}
+
+.orbit__planet--back .orbit__label {
+  opacity: 0;
+}
+
+.orbit__shock {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  width: var(--core-size, 104px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid var(--pick-color, var(--color-gold));
+  box-shadow: 0 0 40px var(--pick-color, var(--color-gold));
+  pointer-events: none;
+}
+
+/* Капсула выбранного сервиса над формой — назад на орбиту */
+.orbit-back {
+  display: none;
+}
+
+.orbit-mode .orbit-back:not(:empty) {
+  display: inline-flex;
+  align-items: center;
+  justify-self: center;
+  gap: 0.55rem;
+  padding: 0.4rem 1rem 0.4rem 0.4rem;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  box-shadow: 0 0 26px -10px var(--planet-color, var(--color-gold));
+  cursor: pointer;
+}
+
+.orbit-back__body {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #1a1a1d;
+  color: var(--planet-color, var(--color-gold));
+}
+
+.orbit-back__body .orbit__icon {
+  width: 62%;
+  height: 62%;
+}
+
+.orbit-back__swap {
+  color: var(--color-text-muted);
+  font-size: 1.1rem;
+}
+
+.checkout:has(.status:not([hidden])) .orbit-back {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit__sky {
+    animation: none;
+  }
+}
